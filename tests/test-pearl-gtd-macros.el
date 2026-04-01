@@ -1,24 +1,22 @@
-;;; test-pearl-gtd.el --- Tests for pearl-gtd  -*- lexical-binding: t; -*-
+;;; tests/test-pearl-gtd-macros.el --- Common macros for pearl-gtd tests  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
 ;; Author: OverbearingPearl <OverbearingPearl@outlook.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "27.1") (org "9.4"))
+;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: outlines, tools, convenience, productivity, gtd, org
 ;; URL: https://github.com/OverbearingPearl/pearl-gtd
 
 ;;; Commentary:
 
-;; This file contains tests for pearl-gtd package.
+;; This file contains common macros for pearl-gtd tests.
 
 ;;; Code:
 
-(require 'ert)
-(require 'pearl-gtd)
 (require 'cl-lib)
 
-(defmacro test-pearl-gtd-define-test (name docstring &rest args)
+(defmacro test-pearl-gtd-macros-define-test (name docstring &rest args)
   "Define an ERT test for pearl-gtd with structured setup.
 NAME is the test name symbol.
 DOCSTRING is the test description.
@@ -56,6 +54,6 @@ If :SETUP, :BODY, :ASSERTS, or :TEARDOWN contain multiple forms, wrap them in (p
                      ,asserts))
                ,teardown)))))))
 
-(provide 'test-pearl-gtd)
+(provide 'test-pearl-gtd-macros)
 
-;;; test-pearl-gtd.el ends here
+;;; tests/test-pearl-gtd-macros.el ends here
