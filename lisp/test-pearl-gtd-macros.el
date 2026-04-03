@@ -36,7 +36,7 @@ If :SETUP, :BODY, :ASSERTS, or :TEARDOWN contain multiple forms, wrap them in (p
        (save-window-excursion
          (save-excursion
            (let* ((temp-dir (make-temp-file "test-pearl-gtd-" t))
-                  (pearl-gtd-base-directory temp-dir))
+                  (pearl-gtd-init-base-directory temp-dir))
              ,setup
              (dolist (file-spec ',files)
                (let ((file (car file-spec))
