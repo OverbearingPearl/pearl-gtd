@@ -1,4 +1,4 @@
-;;; tests/pearl-gtd.el --- Tests for pearl-gtd  -*- lexical-binding: t; -*-
+;;; test-pearl-gtd-init.el --- Tests for pearl-gtd  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -22,19 +22,19 @@
 ;; Tests for pearl-gtd initialization
 (test-pearl-gtd-macros-define-test test-pearl-gtd-initialize
     "Test initializing the Pearl-GTD system."
-  :setup nil
+  :setup (require 'pearl-gtd-init)  ; 替换原有行
   :files nil
-  :body (pearl-gtd-initialize)
-  :asserts (let ((dir pearl-gtd-base-directory))
+  :body (pearl-gtd-init-initialize)
+  :asserts (let ((dir pearl-gtd-init-base-directory))
              (should (file-directory-p dir))
              (should (file-exists-p (expand-file-name "inbox.org" dir)))
              (should (file-exists-p (expand-file-name "reference.org" dir)))
              (should (file-exists-p (expand-file-name "someday.org" dir)))
              (should (file-exists-p (expand-file-name "actions.org" dir))))
   :teardown (dolist (file '("inbox.org" "reference.org" "someday.org" "actions.org"))
-              (delete-file (expand-file-name file pearl-gtd-base-directory)))
-             (delete-directory pearl-gtd-base-directory))
+              (delete-file (expand-file-name file pearl-gtd-init-base-directory)))
+             (delete-directory pearl-gtd-init-base-directory))
 
-(provide 'test-pearl-gtd)
+(provide 'test-pearl-gtd-init)
 
-;;; tests/pearl-gtd.el ends here
+;;; test-pearl-gtd-init.el ends here

@@ -1,4 +1,4 @@
-;;; tests/pearl-gtd-inbox.el --- Tests for pearl-gtd-inbox  -*- lexical-binding: t; -*-
+;;; test-pearl-gtd-inbox.el --- Tests for pearl-gtd-inbox  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -15,20 +15,20 @@
 ;;; Code:
 
 (require 'ert)
-(require 'modules-pearl-gtd-inbox)
+(require 'pearl-gtd-inbox)
 (require 'test-pearl-gtd-macros)  ; Require the macros file
 (require 'cl-lib)
 
 ;; Tests for pearl-gtd-capture
 (test-pearl-gtd-macros-define-test test-pearl-gtd-capture
     "Test capturing a new item to the inbox with timestamp."
-  :setup (require 'pearl-gtd)  ; Ensure pearl-gtd is loaded for initialize
-         (pearl-gtd-initialize)
+  :setup (require 'pearl-gtd-init)  ; 替换为正确模块
+         (pearl-gtd-init-initialize)
   :files nil
   :body (with-mock
           (mock (read-string "Enter item to capture: ") => "Test item")
           (pearl-gtd-inbox-capture))
-  :asserts (let ((inbox-file (expand-file-name "inbox.org" pearl-gtd-base-directory)))
+  :asserts (let ((inbox-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
              (with-temp-buffer
                (insert-file-contents inbox-file)
                (goto-char (point-max))
@@ -36,23 +36,23 @@
                (forward-line 1)  ; Check for properties
                (should (search-forward ":CREATED:" nil t))))
   :teardown (dolist (file '("inbox.org" "reference.org" "someday.org" "actions.org"))
-              (delete-file (expand-file-name file pearl-gtd-base-directory)))
-             (delete-directory pearl-gtd-base-directory))
+              (delete-file (expand-file-name file pearl-gtd-init-base-directory)))
+             (delete-directory pearl-gtd-init-base-directory))
 
 ;; Tests for pearl-gtd-inbox-process
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process
     "Test processing the inbox."
-  :setup (require 'pearl-gtd)  ; Ensure pearl-gtd is loaded
-         (pearl-gtd-initialize)
+  :setup (require 'pearl-gtd-init)  ; 替换为正确模块
+         (pearl-gtd-init-initialize)
   :files nil
   :body (pearl-gtd-inbox-process)
   :asserts (should (get-buffer pearl-gtd-table-stage-buffer-name))
   :teardown (when (get-buffer pearl-gtd-table-stage-buffer-name)
               (kill-buffer pearl-gtd-table-stage-buffer-name))
             (dolist (file '("inbox.org" "reference.org" "someday.org" "actions.org"))
-              (delete-file (expand-file-name file pearl-gtd-base-directory)))
-            (delete-directory pearl-gtd-base-directory))
+              (delete-file (expand-file-name file pearl-gtd-init-base-directory)))
+            (delete-directory pearl-gtd-init-base-directory))
 
 (provide 'test-pearl-gtd-inbox)
 
-;;; tests/pearl-gtd-inbox.el ends here
+;;; test-pearl-gtd-inbox.el ends here

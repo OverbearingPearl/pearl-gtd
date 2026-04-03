@@ -1,4 +1,4 @@
-;;; infra/pearl-gtd-table-stage.el --- Table staging buffer for pearl-gtd  -*- lexical-binding: t; -*-
+;;; pearl-gtd-table-stage.el --- Table staging buffer for pearl-gtd  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -80,6 +80,6 @@
     (message "Changes applied to %s" pearl-gtd-table-stage-original-file)
     (setq pearl-gtd-table-stage-changes nil)))  ; Clear changes
 
-(provide 'infra-pearl-gtd-table-stage)
+(provide 'pearl-gtd-table-stage)
 
-;;; infra/pearl-gtd-table-stage.el ends here
+;;; pearl-gtd-table-stage.el ends here

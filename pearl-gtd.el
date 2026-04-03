@@ -16,31 +16,17 @@
 
 ;;; Code:
 
-;; Capture the directory when the file is loaded
-(defvar pearl-gtd-directory (and load-file-name (file-name-directory load-file-name))
-  "Directory of the pearl-gtd.el file.")
+(defvar pearl-gtd-directory (file-name-directory load-file-name))
 
-(dolist (dir '("infra" "modules" "tests"))
-  (add-to-list 'load-path (expand-file-name dir pearl-gtd-directory)))
+(add-to-list 'load-path (expand-file-name "lisp" pearl-gtd-directory))
 
-(defvar pearl-gtd-base-directory (expand-file-name "~/.pearl-gtd/")
-  "Base directory for Pearl-GTD.")
+(require 'pearl-gtd-init)
+(require 'pearl-gtd-inbox)
 
-(require 'modules-pearl-gtd-inbox)  ; Require the inbox module
-
-(defun pearl-gtd-initialize ()
-  "Initialize the Pearl-GTD system by creating the base directory and necessary files."
+(defun pearl-gtd-capture ()
+  "Capture a new item to the inbox."
   (interactive)
-  (let ((dir pearl-gtd-base-directory))
-    (unless (file-directory-p dir)
-      (make-directory dir))
-    ;; Create necessary files
-    (dolist (file '("inbox.org" "reference.org" "someday.org" "actions.org"))
-      (let ((file-path (expand-file-name file dir)))
-        (unless (file-exists-p file-path)
-          (with-temp-file file-path
-            (insert ";; " file "\n")))))  ; Simple initialization
-    (message "Pearl-GTD initialized in %s" dir)))
+  (pearl-gtd-inbox-capture))
 
 (defun pearl-gtd-process-inbox ()
   "Process the inbox."
@@ -52,33 +38,24 @@
   (interactive)
   (require 'ert)
   (pearl-gtd-reload-modules)
-  (let* ((tests-dir (expand-file-name "tests" pearl-gtd-directory))
-         (el-files (directory-files tests-dir nil "\\.el$")))
-    (dolist (file el-files)
-      (when (string-match "^test-.*\\.el$" file)
-        (let ((feature (intern (file-name-base file))))
-          (require feature))))
-    (ert t)))
+  (dolist (file (directory-files (expand-file-name "lisp" pearl-gtd-directory) nil "^test-.*\\.el$"))
+    (require (intern (file-name-base file))))
+  (ert t))
 
 (defun pearl-gtd-reload-modules ()
   "Reload Pearl-GTD modules for updated code."
   (interactive)
-  (let* ((dirs '("infra" "modules" "tests"))
-         (load-path-dirs
-          (mapcar (lambda (dir)
-                    (expand-file-name dir pearl-gtd-directory))
-                  dirs))
+  (let* ((lisp-dir (expand-file-name "lisp" pearl-gtd-directory))
          (features '()))
-    (dolist (dir load-path-dirs)
-      (dolist (file (directory-files dir nil "\\.el$"))
-        (when (string-match "^[^.]+\\.el$" file)
-          (let ((feature (intern (file-name-base file))))
-            (push feature features)))))
+    (dolist (file (directory-files lisp-dir nil "\\.el$"))
+      (when (string-match "^[^.]+\\.el$" file)
+        (let ((feature (intern (file-name-base file))))
+          (push feature features))))
     (dolist (feature features)
       (when (featurep feature)
         (condition-case nil
             (unload-feature feature)
-          (error nil))))  ; Ignore errors when unloading
+          (error nil))))
     (dolist (feature features)
       (require feature))
     (message "Modules reloaded.")))

@@ -1,4 +1,4 @@
-;;; tests/pearl-gtd-table-stage.el --- Tests for pearl-gtd-table-stage  -*- lexical-binding: t; -*-
+;;; test-pearl-gtd-table-stage.el --- Tests for pearl-gtd-table-stage  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -15,7 +15,7 @@
 ;;; Code:
 
 (require 'ert)
-(require 'modules-pearl-gtd-table-stage)
+(require 'pearl-gtd-table-stage)
 (require 'test-pearl-gtd-macros)  ; Require the macros file
 (require 'cl-lib)
 
@@ -58,4 +58,4 @@
 
 (provide 'test-pearl-gtd-table-stage)
 
-;;; tests/pearl-gtd-table-stage.el ends here
+;;; test-pearl-gtd-table-stage.el ends here

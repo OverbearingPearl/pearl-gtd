@@ -1,4 +1,4 @@
-;;; modules/pearl-gtd-inbox.el --- Inbox handling for pearl-gtd  -*- lexical-binding: t; -*-
+;;; pearl-gtd-inbox.el --- Inbox handling for pearl-gtd  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -14,7 +14,7 @@
 
 ;;; Code:
 
-(require 'infra-pearl-gtd-table-stage)  ; Depend on the infrastructure module
+(require 'pearl-gtd-table-stage)  ; Depend on the infrastructure module
 
 (defun pearl-gtd-inbox-capture ()
   "Interactively capture a new item to the inbox with a timestamp."
@@ -31,6 +31,6 @@
     (pearl-gtd-table-stage-create inbox-file)
     (message "Processing inbox... Use the staging buffer to make changes.")))
 
-(provide 'modules-pearl-gtd-inbox)
+(provide 'pearl-gtd-inbox)
 
-;;; modules/pearl-gtd-inbox.el ends here
+;;; pearl-gtd-inbox.el ends here
