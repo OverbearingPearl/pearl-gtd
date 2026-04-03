@@ -26,27 +26,31 @@
       (save-buffer))))
 
 (defun pearl-gtd-inbox-process-entry (headline)
-  "Process a single entry HEADLINE according to GTD steps."
+  "Process a single entry according to GTD steps.
+HEADLINE is the org heading to process."
   (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " headline))))
     (if is-actionable
         (pearl-gtd-inbox-handle-actionable headline)
       (pearl-gtd-inbox-handle-non-actionable headline))))
 
 (defun pearl-gtd-inbox-handle-actionable (headline)
-  "Handle actionable entries."
+  "Handle actionable entries.
+HEADLINE is the entry heading to process."
   (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " headline))))
     (if can-do-in-2min
         (pearl-gtd-inbox-execute-immediately headline)
       (pearl-gtd-inbox-handle-further-checks headline))))
 
 (defun pearl-gtd-inbox-execute-immediately (headline)
-  "Execute and stage immediate actions."
+  "Execute and stage immediate actions.
+HEADLINE is the entry heading to execute."
   (message "Executing '%s' immediately." headline)
   (pearl-gtd-table-stage-stage-change (point) 0 "done")
   (pearl-gtd-table-stage-add-annotation (point) "Executed and deleted"))
 
 (defun pearl-gtd-inbox-handle-further-checks (headline)
-  "Handle further checks for non-immediate actionable entries."
+  "Handle further checks for non-immediate actionable entries.
+HEADLINE is the entry heading to check."
   (let ((is-contextual (y-or-n-p (format "Does '%s' involve a context? " headline)))
         (is-scheduled (y-or-n-p (format "Is '%s' scheduled? " headline)))
         (is-delegated (y-or-n-p (format "Is '%s' delegated? " headline)))
@@ -65,7 +69,8 @@
       (pearl-gtd-table-stage-add-annotation (point) "Added :PROJECT:"))))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline)
-  "Handle non-actionable entries."
+  "Handle non-actionable entries.
+HEADLINE is the entry heading to handle."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " headline))))
     (cond
      ((string= assign-to "reference") (pearl-gtd-table-stage-stage-change (point) 0 "reference.org") (pearl-gtd-table-stage-add-annotation (point) "Moved to reference.org"))
@@ -116,7 +121,9 @@
   (string-match-p ":DELEGATED:" headline))
 
 (defun pearl-gtd-inbox-move-to (target-file headline)
-  "Move HEADLINE to TARGET-FILE based on staged changes."
+  "Move an entry to TARGET-FILE based on staged changes.
+TARGET-FILE is the destination file name.
+HEADLINE is the entry heading to move."
   (let ((target-path (expand-file-name target-file pearl-gtd-init-base-directory)))
     (with-current-buffer (find-file-noselect target-path)
       (org-mode)
