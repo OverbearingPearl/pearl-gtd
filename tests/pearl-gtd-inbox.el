@@ -1,4 +1,4 @@
-;;; tests/test-pearl-gtd-inbox.el --- Tests for pearl-gtd-inbox  -*- lexical-binding: t; -*-
+;;; tests/pearl-gtd-inbox.el --- Tests for pearl-gtd-inbox  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -55,4 +55,4 @@
 
 (provide 'test-pearl-gtd-inbox)
 
-;;; tests/test-pearl-gtd-inbox.el ends here
+;;; tests/pearl-gtd-inbox.el ends here

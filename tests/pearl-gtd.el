@@ -1,4 +1,4 @@
-;;; tests/test-pearl-gtd.el --- Tests for pearl-gtd  -*- lexical-binding: t; -*-
+;;; tests/pearl-gtd.el --- Tests for pearl-gtd  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -37,4 +37,4 @@
 
 (provide 'test-pearl-gtd)
 
-;;; tests/test-pearl-gtd.el ends here
+;;; tests/pearl-gtd.el ends here

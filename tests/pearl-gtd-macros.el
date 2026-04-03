@@ -1,4 +1,4 @@
-;;; tests/test-pearl-gtd-macros.el --- Common macros for pearl-gtd tests  -*- lexical-binding: t; -*-
+;;; tests/pearl-gtd-macros.el --- Common macros for pearl-gtd tests  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -56,4 +56,4 @@ If :SETUP, :BODY, :ASSERTS, or :TEARDOWN contain multiple forms, wrap them in (p
 
 (provide 'test-pearl-gtd-macros)
 
-;;; tests/test-pearl-gtd-macros.el ends here
+;;; tests/pearl-gtd-macros.el ends here

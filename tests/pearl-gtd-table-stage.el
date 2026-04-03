@@ -1,4 +1,4 @@
-;;; tests/test-pearl-gtd-table-stage.el --- Tests for pearl-gtd-table-stage  -*- lexical-binding: t; -*-
+;;; tests/pearl-gtd-table-stage.el --- Tests for pearl-gtd-table-stage  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 OverbearingPearl
 
@@ -58,4 +58,4 @@
 
 (provide 'test-pearl-gtd-table-stage)
 
-;;; tests/test-pearl-gtd-table-stage.el ends here
+;;; tests/pearl-gtd-table-stage.el ends here
