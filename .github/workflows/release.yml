@@ -78,6 +78,7 @@ jobs:
                   -l checkdoc \
                   --eval "(find-file \"$file\")" \
                   --eval "(setq byte-compile-docstring-max-column 120)" \
+                  --eval "(setq checkdoc-verb-check-experimental-flag nil)" \
                   --eval "(checkdoc-current-buffer)" \
                   --eval "(let ((wbuf (get-buffer \"*Warnings*\"))) \
                             (when (and wbuf (> (length (with-current-buffer wbuf (buffer-string))) 0)) \

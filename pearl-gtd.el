@@ -34,7 +34,7 @@
   (pearl-gtd-inbox-process))
 
 (defun pearl-gtd-run-tests ()
-  "Run all Pearl-GTD unit test."
+  "Run all Pearl-GTD unit tests."
   (interactive)
   (require 'ert)
   (pearl-gtd-reload-modules)
