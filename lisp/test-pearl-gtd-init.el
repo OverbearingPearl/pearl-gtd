@@ -15,14 +15,15 @@
 ;;; Code:
 
 (require 'ert)
-(require 'pearl-gtd)
-(require 'test-pearl-gtd-macros)  ; Require the macros file
 (require 'cl-lib)
+(require 'pearl-gtd)
+(require 'test-pearl-gtd-macros)
+(require 'pearl-gtd-init)
 
 ;; Tests for pearl-gtd initialization
 (test-pearl-gtd-macros-define-test test-pearl-gtd-initialize
     "Test initializing the Pearl-GTD system."
-  :setup (require 'pearl-gtd-init)  ; 替换原有行
+  :setup nil
   :files nil
   :body (pearl-gtd-init-initialize)
   :asserts (let ((dir pearl-gtd-init-base-directory))

@@ -30,32 +30,49 @@
 (defun pearl-gtd-table-stage-create (file-path)
   "Create a read-only buffer from the Org FILE-PATH and display its tables."
   (setq pearl-gtd-table-stage-original-file file-path)
-  (setq pearl-gtd-table-stage-changes nil)  ; Reset changes
+  (setq pearl-gtd-table-stage-changes nil)
   (with-current-buffer (get-buffer-create pearl-gtd-table-stage-buffer-name)
-    (setq buffer-read-only nil)  ; Temporarily make writable to insert content
+    (setq buffer-read-only nil)
     (erase-buffer)
     (insert-file-contents file-path)
-    (org-mode)  ; Ensure Org mode is active
+    (org-mode)
     (goto-char (point-min))
-    (while (re-search-forward "^\\|\\*+ " nil t)
-      (org-table-align))  ; Align tables
-    (setq buffer-read-only t)  ; Make buffer read-only
-    (use-local-map (copy-keymap org-mode-map))  ; Inherit Org map
-    (local-set-key (kbd "C-c C-s") 'pearl-gtd-table-stage-stage-change)  ; Example key for staging
-    (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-apply-changes)  ; Apply changes
+    (while (re-search-forward org-table-line-regexp nil t)
+      (when (org-at-table-p)
+        (org-table-align)
+        (forward-line 1)))
+    (setq buffer-read-only t)
+    (use-local-map (copy-keymap org-mode-map))
+    (local-set-key (kbd "C-c C-s") 'pearl-gtd-table-stage-stage-change)
+    (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-apply-changes)
     (display-buffer (current-buffer))))
+
+(defun pearl-gtd-table-stage-highlight-current-entry (position)
+  "Highlight the entry at POSITION in the staging buffer."
+  (with-current-buffer pearl-gtd-table-stage-buffer-name
+    (save-excursion
+      (goto-char position)
+      (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+        (overlay-put ov 'face '(:background "yellow"))
+        (overlay-put ov 'evaporate t)))))
+
+(defun pearl-gtd-table-stage-add-annotation (position annotation)
+  "Add visual annotation at POSITION in the staging buffer."
+  (with-current-buffer pearl-gtd-table-stage-buffer-name
+    (save-excursion
+      (goto-char position)
+      (insert (format " => %s" annotation)))))
 
 (defun pearl-gtd-table-stage-stage-change (row col new-value)
   "Stage a change for ROW, COL with NEW-VALUE."
   (push (list row col new-value) pearl-gtd-table-stage-changes)
-  ;; Highlight the changed cell for feedback
   (with-current-buffer pearl-gtd-table-stage-buffer-name
     (save-excursion
       (org-table-goto-line row)
       (org-table-goto-column col)
       (let ((ov (make-overlay (point) (line-end-position))))
-        (overlay-put ov 'face '(:background "yellow"))  ; Highlight
-        (overlay-put ov 'evaporate t)))))  ; Remove after action
+        (overlay-put ov 'face '(:background "yellow"))
+        (overlay-put ov 'evaporate t)))))
 
 (defun pearl-gtd-table-stage-apply-changes ()
   "Apply staged change to the original Org file."
@@ -68,17 +85,15 @@
         (let ((row (nth 0 change))
               (col (nth 1 change))
               (new-value (nth 2 change)))
-          ;; Go to the first table and apply the change
-          (when (and (org-at-table-p)  ; Check if in a table, though we might need to navigate
+          (when (and (org-at-table-p)
                      (org-table-goto-line row)
                      (org-table-goto-column col))
             (org-table-blank-field)
             (insert new-value)
             (org-table-align))))
-      ;; Save the file
       (write-region (point-min) (point-max) pearl-gtd-table-stage-original-file))
     (message "Changes applied to %s" pearl-gtd-table-stage-original-file)
-    (setq pearl-gtd-table-stage-changes nil)))  ; Clear changes
+    (setq pearl-gtd-table-stage-changes nil)))
 
 (provide 'pearl-gtd-table-stage)
 
