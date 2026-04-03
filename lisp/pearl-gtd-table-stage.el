@@ -57,7 +57,7 @@
         (overlay-put ov 'evaporate t)))))
 
 (defun pearl-gtd-table-stage-add-annotation (position annotation)
-  "Add visual annotation at POSITION in the staging buffer."
+  "Add ANNOTATION visually at POSITION in the staging buffer."
   (with-current-buffer pearl-gtd-table-stage-buffer-name
     (save-excursion
       (goto-char position)
@@ -75,7 +75,7 @@
         (overlay-put ov 'evaporate t)))))
 
 (defun pearl-gtd-table-stage-apply-changes ()
-  "Apply staged change to the original Org file."
+  "Apply staged changes to the original Org file."
   (when pearl-gtd-table-stage-original-file
     (with-temp-file pearl-gtd-table-stage-original-file
       (insert-file-contents pearl-gtd-table-stage-original-file)
