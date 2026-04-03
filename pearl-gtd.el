@@ -26,7 +26,7 @@
 (defvar pearl-gtd-base-directory (expand-file-name "~/.pearl-gtd/")
   "Base directory for Pearl-GTD.")
 
-(require 'pearl-gtd-inbox)  ; Require the inbox module
+(require 'modules-pearl-gtd-inbox)  ; Require the inbox module
 
 (defun pearl-gtd-initialize ()
   "Initialize the Pearl-GTD system by creating the base directory and necessary files."

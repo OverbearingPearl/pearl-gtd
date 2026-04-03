@@ -15,7 +15,7 @@
 ;;; Code:
 
 (require 'ert)
-(require 'pearl-gtd-table-stage)
+(require 'modules-pearl-gtd-table-stage)
 (require 'test-pearl-gtd-macros)  ; Require the macros file
 (require 'cl-lib)
 

@@ -15,7 +15,7 @@
 ;;; Code:
 
 (require 'ert)
-(require 'pearl-gtd-inbox)
+(require 'modules-pearl-gtd-inbox)
 (require 'test-pearl-gtd-macros)  ; Require the macros file
 (require 'cl-lib)
 

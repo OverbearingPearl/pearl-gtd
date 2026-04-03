@@ -14,7 +14,7 @@
 
 ;;; Code:
 
-(require 'pearl-gtd-table-stage)  ; Depend on the infrastructure module
+(require 'infra-pearl-gtd-table-stage)  ; Depend on the infrastructure module
 
 (defun pearl-gtd-inbox-capture ()
   "Interactively capture a new item to the inbox with a timestamp."
@@ -31,6 +31,6 @@
     (pearl-gtd-table-stage-create inbox-file)
     (message "Processing inbox... Use the staging buffer to make changes.")))
 
-(provide 'pearl-gtd-inbox)
+(provide 'modules-pearl-gtd-inbox)
 
 ;;; modules/pearl-gtd-inbox.el ends here

@@ -80,6 +80,6 @@
     (message "Changes applied to %s" pearl-gtd-table-stage-original-file)
     (setq pearl-gtd-table-stage-changes nil)))  ; Clear changes
 
-(provide 'pearl-gtd-table-stage)
+(provide 'infra-pearl-gtd-table-stage)
 
 ;;; infra/pearl-gtd-table-stage.el ends here
