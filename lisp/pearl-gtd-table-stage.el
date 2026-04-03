@@ -58,7 +58,7 @@
         (overlay-put ov 'evaporate t)))))  ; Remove after action
 
 (defun pearl-gtd-table-stage-apply-changes ()
-  "Apply staged changes to the original Org file."
+  "Apply staged change to the original Org file."
   (when pearl-gtd-table-stage-original-file
     (with-temp-file pearl-gtd-table-stage-original-file
       (insert-file-contents pearl-gtd-table-stage-original-file)
