@@ -21,6 +21,9 @@
   "List of (headline . target-file) pending to be moved after staging.
 If target-file is nil, means delete (trash).")
 
+(defvar pearl-gtd-inbox-stage-buffer-name nil
+  "The name of the current inbox staging buffer.")
+
 (defun pearl-gtd-inbox-capture ()
   "Capture a new item to the inbox with a timestamp."
   (let ((item (read-string "Enter item to capture: ")))
@@ -101,6 +104,7 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer."
                (file-size (file-attribute-size attrs)))
           (if (> file-size 0)
               (let ((staging-buffer (pearl-gtd-table-stage-create inbox-file " *custom-inbox-stage*")))
+                (setq pearl-gtd-inbox-stage-buffer-name (buffer-name staging-buffer))
                 (with-current-buffer staging-buffer
                   (org-mode)
                   (org-map-entries

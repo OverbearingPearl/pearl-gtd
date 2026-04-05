@@ -41,8 +41,8 @@
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) t))
          ((symbol-function 'read-string) (lambda (&rest args) "Quick task")))
   :body (pearl-gtd-inbox-process)
-  :asserts (should-not 
-             (with-current-buffer 
+  :asserts (should-not
+             (with-current-buffer
                  (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
                (search-forward "* Quick task" nil t)))
            (should (file-exists-p (expand-file-name "actions.org" pearl-gtd-init-base-directory)))
@@ -54,52 +54,76 @@
     "Test processing path: actionable with context."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task with context\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "context" (car args)) t nil))))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "actionable" (car args)) t)
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "context" (car args)) t)
+              (t nil)))))
   :body (pearl-gtd-inbox-process)
-  :asserts (let ((stage-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
                  (should (search-forward " => Added :CONTEXT:" nil t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable with scheduled date
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-scheduled
     "Test processing path: actionable with scheduled date."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task with schedule\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "scheduled" (car args)) t nil))))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "actionable" (car args)) t)
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "scheduled" (car args)) t)
+              (t nil)))))
   :body (pearl-gtd-inbox-process)
-  :asserts (let ((stage-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
                  (should (search-forward " => Added SCHEDULED:" nil t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable with delegation
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-delegated
     "Test processing path: actionable with delegation."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task delegated\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "delegated" (car args)) t nil))))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "actionable" (car args)) t)
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "delegated" (car args)) t)
+              (t nil)))))
   :body (pearl-gtd-inbox-process)
-  :asserts (let ((stage-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
                  (should (search-forward " => Added :DELEGATED:" nil t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable as a project
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-project
     "Test processing path: actionable as a project."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Project task\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "project" (car args)) t nil))))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "actionable" (car args)) t)
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "project" (car args)) t)
+              (t nil)))))
   :body (pearl-gtd-inbox-process)
-  :asserts (let ((stage-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
                  (should (search-forward " => Added :PROJECT:" nil t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-table-stage-buffer-name)))
+  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: non-actionable to reference
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-reference
