@@ -46,18 +46,19 @@
   "Reload Pearl-GTD modules for updated code."
   (interactive)
   (let* ((lisp-dir (expand-file-name "lisp" pearl-gtd-directory))
-         (features '()))
-    (dolist (file (directory-files lisp-dir nil "\\.el$"))
+         (el-files (directory-files lisp-dir nil "\\.el$")))
+    ;; Unload all features first
+    (dolist (file el-files)
       (when (string-match "^[^.]+\\.el$" file)
         (let ((feature (intern (file-name-base file))))
-          (push feature features))))
-    (dolist (feature features)
-      (when (featurep feature)
-        (condition-case nil
-            (unload-feature feature)
-          (error nil))))
-    (dolist (feature features)
-      (require feature))
+          (when (featurep feature)
+            (condition-case nil
+                (unload-feature feature)
+              (error nil))))))
+    ;; Load .el source files directly, ignoring .elc
+    (dolist (file el-files)
+      (when (string-match "^[^.]+\\.el$" file)
+        (load-file (expand-file-name file lisp-dir))))
     (message "Modules reloaded.")))
 
 (provide 'pearl-gtd)
