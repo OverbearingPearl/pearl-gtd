@@ -36,11 +36,15 @@
 ;; Test processing path: actionable and can be done in 2 minutes
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-immediate
     "Test processing path: actionable and can be done in 2 minutes."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Quick task\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) t)))
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) t))
+         ((symbol-function 'read-string) (lambda (&rest args) "Quick task")))
   :body (pearl-gtd-inbox-process)
-  :asserts (should-not (search-forward "* Quick task" (expand-file-name "inbox.org" pearl-gtd-init-base-directory) nil t))
+  :asserts (should-not 
+             (with-current-buffer 
+                 (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
+               (search-forward "* Quick task" nil t)))
            (should (file-exists-p (expand-file-name "actions.org" pearl-gtd-init-base-directory)))
   :teardown (dolist (file '("inbox.org" "actions.org"))
               (delete-file (expand-file-name file pearl-gtd-init-base-directory))))
@@ -48,7 +52,7 @@
 ;; Test processing path: actionable with context
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-context
     "Test processing path: actionable with context."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task with context\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "context" (car args)) t nil))))
   :body (pearl-gtd-inbox-process)
@@ -61,7 +65,7 @@
 ;; Test processing path: actionable with scheduled date
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-scheduled
     "Test processing path: actionable with scheduled date."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task with schedule\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "scheduled" (car args)) t nil))))
   :body (pearl-gtd-inbox-process)
@@ -74,7 +78,7 @@
 ;; Test processing path: actionable with delegation
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-delegated
     "Test processing path: actionable with delegation."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task delegated\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "delegated" (car args)) t nil))))
   :body (pearl-gtd-inbox-process)
@@ -87,7 +91,7 @@
 ;; Test processing path: actionable as a project
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-project
     "Test processing path: actionable as a project."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Project task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) (if (string-match "project" (car args)) t nil))))
   :body (pearl-gtd-inbox-process)
@@ -100,7 +104,7 @@
 ;; Test processing path: non-actionable to reference
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-reference
     "Test processing path: non-actionable to reference."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Non-actionable task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) nil))
          ((symbol-function 'read-string) (lambda (&rest args) "reference")))
@@ -111,7 +115,7 @@
 ;; Test processing path: non-actionable to someday
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-someday
     "Test processing path: non-actionable to someday."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Someday task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) nil))
          ((symbol-function 'read-string) (lambda (&rest args) "someday")))
@@ -122,7 +126,7 @@
 ;; Test processing path: non-actionable to trash
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-trash
     "Test processing path: non-actionable to trash."
-  :setup (progn (pearl-gtd-init-initialize) (pearl-gtd-inbox-capture))
+  :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Trash task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) nil))
          ((symbol-function 'read-string) (lambda (&rest args) "trash")))
