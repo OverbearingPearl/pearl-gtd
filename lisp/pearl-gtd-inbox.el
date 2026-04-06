@@ -32,73 +32,68 @@ If target-file is nil, means delete (trash).")
       (insert (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n" item (format-time-string "%Y-%m-%d %H:%M:%S")))
       (save-buffer))))
 
-(defun pearl-gtd-inbox-process-entry (headline buffer)
+(defun pearl-gtd-inbox-process-entry (headline buffer row)
   "Process a single entry according to GTD steps.
-HEADLINE is the org heading to process. BUFFER is the staging buffer."
+HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is the row number."
   (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " headline))))
     (if is-actionable
-        (pearl-gtd-inbox-handle-actionable headline buffer)
-      (pearl-gtd-inbox-handle-non-actionable headline buffer))))
+        (pearl-gtd-inbox-handle-actionable headline buffer row)
+      (pearl-gtd-inbox-handle-non-actionable headline buffer row))))
 
-(defun pearl-gtd-inbox-handle-actionable (headline buffer)
+(defun pearl-gtd-inbox-handle-actionable (headline buffer row)
   "Handle actionable entries.
-HEADLINE is the entry heading to process. BUFFER is the staging buffer."
+HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is the row number."
   (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " headline))))
     (if can-do-in-2min
-        (pearl-gtd-inbox-execute-immediately headline buffer)
-      (pearl-gtd-inbox-handle-further-checks headline buffer))))
+        (pearl-gtd-inbox-execute-immediately headline buffer row)
+      (pearl-gtd-inbox-handle-further-checks headline buffer row))))
 
-(defun pearl-gtd-inbox-execute-immediately (headline buffer)
-  "Execute and stage immediate actions.
-HEADLINE is the entry heading to execute. BUFFER is the staging buffer."
+(defun pearl-gtd-inbox-execute-immediately (headline buffer row)
+  "Execute and stage immediate actions."
   (message "Executing '%s' immediately." headline)
-  (pearl-gtd-table-stage-stage-change buffer (point) 0 "done")
-  (pearl-gtd-table-stage-add-annotation buffer (point) "Executed and deleted")
+  (pearl-gtd-table-stage-mark-executed buffer row)
   (push (cons headline "actions.org") pearl-gtd-inbox--pending-moves))
 
-(defun pearl-gtd-inbox-handle-further-checks (headline buffer)
+(defun pearl-gtd-inbox-handle-further-checks (headline buffer row)
   "Handle further checks for non-immediate actionable entries.
-HEADLINE is the entry heading to check. BUFFER is the staging buffer."
+HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the row number."
   (let ((is-contextual (y-or-n-p (format "Does '%s' involve a context? " headline)))
         (is-scheduled (y-or-n-p (format "Is '%s' scheduled? " headline)))
         (is-delegated (y-or-n-p (format "Is '%s' delegated? " headline)))
         (is-project (y-or-n-p (format "Is '%s' a project? " headline))))
     (when is-contextual
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 ":CONTEXT:")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Added :CONTEXT:"))
+      (pearl-gtd-table-stage-stage-change buffer row 2 ":CONTEXT:")  ; Assuming column 2 for tags
+      (pearl-gtd-table-stage-add-annotation buffer row "Added :CONTEXT:"))
     (when is-scheduled
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 "SCHEDULED:")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Added SCHEDULED:"))
+      (pearl-gtd-table-stage-add-annotation buffer row "SCHEDULED"))
     (when is-delegated
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 ":DELEGATED:")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Added :DELEGATED:"))
+      (pearl-gtd-table-stage-stage-change buffer row 2 ":DELEGATED:")  ; Assuming column 2 for tags
+      (pearl-gtd-table-stage-add-annotation buffer row "Added :DELEGATED:"))
     (when is-project
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 ":PROJECT:")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Added :PROJECT:"))))
+      (pearl-gtd-table-stage-add-annotation buffer row "PROJECT"))))
 
-(defun pearl-gtd-inbox-handle-non-actionable (headline buffer)
+(defun pearl-gtd-inbox-handle-non-actionable (headline buffer row)
   "Handle non-actionable entries.
-HEADLINE is the entry heading to handle. BUFFER is the staging buffer."
+HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is the row number."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " headline))))
     (cond
      ((string= assign-to "reference")
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 "reference.org")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Moved to reference.org")
+      (pearl-gtd-table-stage-add-annotation buffer row "-> reference")
       (push (cons headline "reference.org") pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 "someday.org")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Moved to someday.org")
+      (pearl-gtd-table-stage-add-annotation buffer row "-> someday")
       (push (cons headline "someday.org") pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
-      (pearl-gtd-table-stage-stage-change buffer (point) 0 "trash")
-      (pearl-gtd-table-stage-add-annotation buffer (point) "Deleted")
+      (pearl-gtd-table-stage-mark-deleted buffer row)
       (push (cons headline nil) pearl-gtd-inbox--pending-moves))
-     (t (pearl-gtd-table-stage-add-annotation buffer (point) "No change")))))
+     (t (pearl-gtd-table-stage-add-annotation buffer row "No change")))))
 
 (defun pearl-gtd-inbox-process ()
   "Process the inbox according to GTD clarify and organize steps, with user interaction via staging buffer."
   (let ((inbox-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
     (setq pearl-gtd-inbox--pending-moves '())
+    (when (get-buffer pearl-gtd-inbox-stage-buffer-name)
+      (kill-buffer pearl-gtd-inbox-stage-buffer-name))
     (if (file-exists-p inbox-file)
         (let* ((attrs (file-attributes inbox-file))
                (file-size (file-attribute-size attrs)))
@@ -107,18 +102,17 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer."
                 (setq pearl-gtd-inbox-stage-buffer-name (buffer-name staging-buffer))
                 (with-current-buffer staging-buffer
                   (org-mode)
-                  (org-map-entries
-                   (lambda ()
-                     (let* ((headline (org-get-heading t t)))
-                       (pearl-gtd-table-stage-highlight-current-entry staging-buffer (point))
-                       (pearl-gtd-inbox-process-entry headline staging-buffer)
-                       t))))
-                (pearl-gtd-table-stage-apply-changes staging-buffer)
-                (dolist (move pearl-gtd-inbox--pending-moves)
-                  (pearl-gtd-inbox-do-move (car move) (cdr move)))
-                (when (and (file-exists-p inbox-file)
-                           (= 0 (file-attribute-size (file-attributes inbox-file))))
-                  (delete-file inbox-file))
+                  (pearl-gtd-table-stage-map-entries
+                   staging-buffer
+                   (lambda (headline row)
+                     (pearl-gtd-table-stage-highlight-entry staging-buffer row)
+                     (pearl-gtd-inbox-process-entry headline staging-buffer row)))
+                  (pearl-gtd-table-stage-apply-changes staging-buffer)
+                  (dolist (move pearl-gtd-inbox--pending-moves)
+                    (pearl-gtd-inbox-do-move (car move) (cdr move)))
+                  (when (and (file-exists-p inbox-file)
+                             (= 0 (file-attribute-size (file-attributes inbox-file))))
+                    (delete-file inbox-file)))
                 (message "Inbox processing complete and changes applied per GTD workflow."))
             (message "Inbox is empty, nothing to process.")))
       (message "Inbox file does not exist."))))
