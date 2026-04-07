@@ -93,108 +93,113 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
       (setq buffer-read-only t)
       (use-local-map (copy-keymap org-mode-map))
       (local-set-key (kbd "C-c C-s") 'pearl-gtd-table-stage-stage-change)
-      (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-apply-changes)
+      (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-clear-changes)
       (display-buffer (current-buffer))
       (current-buffer))))  ; Return the buffer object
 
-(defun pearl-gtd-table-stage-highlight-entry (buffer row)
-  "Highlight the entry at ROW in the staging BUFFER."
-  (with-current-buffer buffer
-    (save-excursion
-      ;; Clear previous highlight if exists
-      (when pearl-gtd-table-stage-current-highlight
-        (delete-overlay pearl-gtd-table-stage-current-highlight)
-        (setq pearl-gtd-table-stage-current-highlight nil))
-      (goto-char (point-min))
-      (forward-line (1- row))
-      (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
-        (overlay-put ov 'face 'pearl-gtd-table-stage-highlight)
-        (overlay-put ov 'evaporate t)
-        (setq pearl-gtd-table-stage-current-highlight ov)))))
-
-(defun pearl-gtd-table-stage-add-annotation (buffer row annotation)
-  "Add ANNOTATION at the end of ROW in the staging BUFFER."
-  (with-current-buffer buffer
-    (let ((inhibit-read-only t))  ; Temporarily allow modifications
-      (save-excursion
-        (goto-char (point-min))
-        (forward-line (1- row))  ; Row starts from 1
-        (end-of-line)
-        (insert (format " => %s" annotation))
-        (org-table-align)))))
-
-(defun pearl-gtd-table-stage-mark-deleted (buffer row)
-  "Mark the headline at ROW in BUFFER as deleted (trash) with gray strikethrough."
-  (with-current-buffer buffer
-    (let ((inhibit-read-only t))
-      (save-excursion
-        (goto-char (point-min))
-        (forward-line (1- row))
-        (org-table-goto-column 1)
-        (let* ((start (point))
-               (end (progn (skip-chars-forward "^|") (point)))
-               (ov (make-overlay start end)))
-          (overlay-put ov 'face 'pearl-gtd-table-stage-deleted)
-          (overlay-put ov 'evaporate t)))
-      (cl-pushnew row pearl-gtd-table-stage-marked-deleted-rows))))
-
-(defun pearl-gtd-table-stage-mark-executed (buffer row)
-  "Mark the headline at ROW in BUFFER as executed (2min rule) with green strikethrough."
-  (with-current-buffer buffer
-    (let ((inhibit-read-only t))
-      (save-excursion
-        (goto-char (point-min))
-        (forward-line (1- row))
-        (org-table-goto-column 1)
-        (let* ((start (point))
-               (end (progn (skip-chars-forward "^|") (point)))
-               (ov (make-overlay start end)))
-          (overlay-put ov 'face 'pearl-gtd-table-stage-executed)
-          (overlay-put ov 'evaporate t)))
-      (cl-pushnew row pearl-gtd-table-stage-marked-executed-rows))))
-
-(defun pearl-gtd-table-stage-stage-change (buffer row col new-value)
-  "Stage a change for ROW, COL with NEW-VALUE in BUFFER."
-  (with-current-buffer buffer
-    (push (list row col new-value) pearl-gtd-table-stage-changes)
-    (let ((inhibit-read-only t))
-      (save-excursion
-        (goto-char (point-min))
-        (forward-line (1- row))
-        (org-table-goto-column col)
-        (org-table-blank-field)
-        (insert new-value)
-        (org-table-align)
-        ;; Reapply deleted/executed marks after table realignment
-        (pearl-gtd-table-stage--reapply-marks buffer)))))
-
-(defun pearl-gtd-table-stage-apply-changes (buffer)
-  "Clear the changes list without writing back to the file."
-  (with-current-buffer buffer
-    (setq pearl-gtd-table-stage-changes nil)
-    (message "Changes cleared.")))
-
 (defun pearl-gtd-table-stage-map-entries (buffer func)
   "Map over all data entries in the staging BUFFER, calling FUNC for each.
-FUNC receives two arguments: the HEADLINE text and a ROW number.
-The ROW number can be used with other pearl-gtd-table-stage functions."
+FUNC receives two arguments: the HEADLINE text and an ENTRY-REF object.
+ENTRY-REF is an opaque reference that can be passed to other pearl-gtd-table-stage functions."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-min))
-      ;; Skip header and separator lines (first two lines)
       (forward-line 2)
-      ;; Collect all entries first to avoid modification during iteration
       (let ((entries '()))
         (while (not (eobp))
           (let ((current-row (line-number-at-pos)))
             (when (looking-at "|")
               (let ((headline (string-trim (org-table-get-field 1))))
                 (when (and headline (not (string= headline "")))
-                  (push (cons headline current-row) entries)))))
+                  (push (cons headline (cons buffer current-row)) entries)))))
           (forward-line 1))
-        ;; Process collected entries in original order
         (dolist (entry (nreverse entries))
           (funcall func (car entry) (cdr entry)))))))
+
+(defun pearl-gtd-table-stage-highlight-entry (entry-ref)
+  "Highlight the entry referenced by ENTRY-REF."
+  (let ((buffer (car entry-ref))
+        (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (save-excursion
+        (when pearl-gtd-table-stage-current-highlight
+          (delete-overlay pearl-gtd-table-stage-current-highlight)
+          (setq pearl-gtd-table-stage-current-highlight nil))
+        (goto-char (point-min))
+        (forward-line (1- row))
+        (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+          (overlay-put ov 'face 'pearl-gtd-table-stage-highlight)
+          (overlay-put ov 'evaporate t)
+          (setq pearl-gtd-table-stage-current-highlight ov))))))
+
+(defun pearl-gtd-table-stage-add-annotation (entry-ref annotation)
+  "Add ANNOTATION to the entry referenced by ENTRY-REF."
+  (let ((buffer (car entry-ref))
+        (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (end-of-line)
+          (insert (format " => %s" annotation))
+          (org-table-align))))))
+
+(defun pearl-gtd-table-stage-mark-deleted (entry-ref)
+  "Mark the entry referenced by ENTRY-REF as deleted (trash)."
+  (let ((buffer (car entry-ref))
+        (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column 1)
+          (let* ((start (point))
+                 (end (progn (skip-chars-forward "^|") (point)))
+                 (ov (make-overlay start end)))
+            (overlay-put ov 'face 'pearl-gtd-table-stage-deleted)
+            (overlay-put ov 'evaporate t)))
+        (cl-pushnew row pearl-gtd-table-stage-marked-deleted-rows)))))
+
+(defun pearl-gtd-table-stage-mark-executed (entry-ref)
+  "Mark the entry referenced by ENTRY-REF as executed (2min rule)."
+  (let ((buffer (car entry-ref))
+        (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column 1)
+          (let* ((start (point))
+                 (end (progn (skip-chars-forward "^|") (point)))
+                 (ov (make-overlay start end)))
+            (overlay-put ov 'face 'pearl-gtd-table-stage-executed)
+            (overlay-put ov 'evaporate t)))
+        (cl-pushnew row pearl-gtd-table-stage-marked-executed-rows)))))
+
+(defun pearl-gtd-table-stage-stage-change (entry-ref col new-value)
+  "Stage a change for ENTRY-REF at COL with NEW-VALUE."
+  (let ((buffer (car entry-ref))
+        (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (push (list row col new-value) pearl-gtd-table-stage-changes)
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column col)
+          (org-table-blank-field)
+          (insert new-value)
+          (org-table-align)
+          (pearl-gtd-table-stage--reapply-marks buffer))))))
+
+(defun pearl-gtd-table-stage-clear-changes (buffer)
+  "Clear the changes list without writing back to the file."
+  (with-current-buffer buffer
+    (setq pearl-gtd-table-stage-changes nil)
+    (message "Changes cleared.")))
 
 (defun pearl-gtd-table-stage--reapply-marks (buffer)
   "Reapply all marks to BUFFER after table alignment."

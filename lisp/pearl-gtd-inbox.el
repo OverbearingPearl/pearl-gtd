@@ -32,31 +32,31 @@ If target-file is nil, means delete (trash). Properties-string contains tags and
       (insert (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n" item (format-time-string "%Y-%m-%d %H:%M:%S")))
       (save-buffer))))
 
-(defun pearl-gtd-inbox-process-entry (headline buffer row)
+(defun pearl-gtd-inbox-process-entry (headline buffer entry-ref)
   "Process a single entry according to GTD steps.
-HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is the row number."
+HEADLINE is the entry heading to process. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
   (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " headline))))
     (if is-actionable
-        (pearl-gtd-inbox-handle-actionable headline buffer row)
-      (pearl-gtd-inbox-handle-non-actionable headline buffer row))))
+        (pearl-gtd-inbox-handle-actionable headline buffer entry-ref)
+      (pearl-gtd-inbox-handle-non-actionable headline buffer entry-ref))))
 
-(defun pearl-gtd-inbox-handle-actionable (headline buffer row)
+(defun pearl-gtd-inbox-handle-actionable (headline buffer entry-ref)
   "Handle actionable entries.
-HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is the row number."
+HEADLINE is the entry heading to process. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
   (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " headline))))
     (if can-do-in-2min
-        (pearl-gtd-inbox-execute-immediately headline buffer row)
-      (pearl-gtd-inbox-handle-further-checks headline buffer row))))
+        (pearl-gtd-inbox-execute-immediately headline buffer entry-ref)
+      (pearl-gtd-inbox-handle-further-checks headline buffer entry-ref))))
 
-(defun pearl-gtd-inbox-execute-immediately (headline buffer row)
+(defun pearl-gtd-inbox-execute-immediately (headline buffer entry-ref)
   "Execute and stage immediate actions."
   (message "Executing '%s' immediately." headline)
-  (pearl-gtd-table-stage-mark-executed buffer row)
+  (pearl-gtd-table-stage-mark-executed entry-ref)
   (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
 
-(defun pearl-gtd-inbox-handle-further-checks (headline buffer row)
+(defun pearl-gtd-inbox-handle-further-checks (headline buffer entry-ref)
   "Handle further checks for non-immediate actionable entries.
-HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the row number."
+HEADLINE is the entry heading to check. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
   (let ((tags '()))
     ;; Context: single value
     (let ((context (read-string (format "Context for '%s' (e.g. @home, RET to skip): " headline))))
@@ -81,25 +81,25 @@ HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the
 
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
-        (pearl-gtd-table-stage-stage-change buffer row 3 props))
+        (pearl-gtd-table-stage-stage-change entry-ref 3 props))
       ;; Store headline, target-file, and properties
       (push (list headline "actions.org" props) pearl-gtd-inbox--pending-moves))))
 
-(defun pearl-gtd-inbox-handle-non-actionable (headline buffer row)
+(defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref)
   "Handle non-actionable entries.
-HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is the row number."
+HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " headline))))
     (cond
      ((string= assign-to "reference")
-      (pearl-gtd-table-stage-add-annotation buffer row "-> reference")
+      (pearl-gtd-table-stage-add-annotation entry-ref "-> reference")
       (push (list headline "reference.org" nil) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
-      (pearl-gtd-table-stage-add-annotation buffer row "-> someday")
+      (pearl-gtd-table-stage-add-annotation entry-ref "-> someday")
       (push (list headline "someday.org" nil) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
-      (pearl-gtd-table-stage-mark-deleted buffer row)
+      (pearl-gtd-table-stage-mark-deleted entry-ref)
       (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
-     (t (pearl-gtd-table-stage-add-annotation buffer row "No change")))))
+     (t (pearl-gtd-table-stage-add-annotation entry-ref "No change")))))
 
 (defun pearl-gtd-inbox-process ()
   "Process the inbox according to GTD clarify and organize steps, with user interaction via staging buffer."
@@ -117,14 +117,14 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is th
                   (org-mode)
                   (pearl-gtd-table-stage-map-entries
                    staging-buffer
-                   (lambda (headline row)
-                     (pearl-gtd-table-stage-highlight-entry staging-buffer row)
-                     (pearl-gtd-inbox-process-entry headline staging-buffer row)))
+                   (lambda (headline entry-ref)
+                     (pearl-gtd-table-stage-highlight-entry entry-ref)
+                     (pearl-gtd-inbox-process-entry headline staging-buffer entry-ref)))
                   ;; Clear highlight after processing all entries
                   (when pearl-gtd-table-stage-current-highlight
                     (delete-overlay pearl-gtd-table-stage-current-highlight)
                     (setq pearl-gtd-table-stage-current-highlight nil))
-                  (pearl-gtd-table-stage-apply-changes staging-buffer)
+                  (pearl-gtd-table-stage-clear-changes staging-buffer)
                   (dolist (move pearl-gtd-inbox--pending-moves)
                     (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move)))
                   (when (and (file-exists-p inbox-file)

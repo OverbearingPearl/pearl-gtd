@@ -118,15 +118,15 @@
              (should (member '(5 1 "Z") pearl-gtd-table-stage-changes)))
   :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-apply-changes-to-file
-    "Test applying staged changes."
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-clear-changes
+    "Test clearing staged changes."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
   :files (("test.org" "* Test\n"))
   :body (progn
           (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
           (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 3 2 "9")
-          (pearl-gtd-table-stage-apply-changes (get-buffer pearl-gtd-table-stage-buffer-name)))
+          (pearl-gtd-table-stage-clear-changes (get-buffer pearl-gtd-table-stage-buffer-name)))
   :asserts (progn
              (should (null pearl-gtd-table-stage-changes)))
   :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
@@ -141,7 +141,7 @@
              (should (eq (lookup-key (current-local-map) (kbd "C-c C-s"))
                         'pearl-gtd-table-stage-stage-change))
              (should (eq (lookup-key (current-local-map) (kbd "C-c C-a"))
-                        'pearl-gtd-table-stage-apply-changes)))
+                        'pearl-gtd-table-stage-clear-changes)))
   :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
 
 (provide 'test-pearl-gtd-table-stage)
