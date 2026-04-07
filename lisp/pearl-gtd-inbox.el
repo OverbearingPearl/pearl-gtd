@@ -81,7 +81,7 @@ HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the
 
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
-        (pearl-gtd-table-stage-stage-change buffer row 2 props))
+        (pearl-gtd-table-stage-stage-change buffer row 3 props))
       ;; Store headline, target-file, and properties
       (push (list headline "actions.org" props) pearl-gtd-inbox--pending-moves))))
 

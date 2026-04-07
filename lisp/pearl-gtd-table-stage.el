@@ -72,8 +72,8 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
            (push (list headline tags state created) headlines))))
       ;; Clear buffer and insert only the table
       (erase-buffer)
-      (insert "| Headline | Tags | Age |\n")
-      (insert "|----------|------|-----|\n")
+      (insert "| Headline | Age | Tags |\n")
+      (insert "|----------|-----+------|\n")
       (dolist (entry (nreverse headlines))
         (let* ((created-str (nth 3 entry))
                (age-str (if created-str
@@ -87,8 +87,8 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
                         "N/A")))
           (insert (format "| %s | %s | %s |\n"
                           (nth 0 entry)
-                          (mapconcat 'identity (nth 1 entry) ",")
-                          age-str))))
+                          age-str
+                          (mapconcat 'identity (nth 1 entry) ",")))))
       (org-mode)
       (org-table-align)
       (setq buffer-read-only t)
