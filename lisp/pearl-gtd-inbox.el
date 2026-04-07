@@ -120,6 +120,10 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is th
                    (lambda (headline row)
                      (pearl-gtd-table-stage-highlight-entry staging-buffer row)
                      (pearl-gtd-inbox-process-entry headline staging-buffer row)))
+                  ;; Clear highlight after processing all entries
+                  (when pearl-gtd-table-stage-current-highlight
+                    (delete-overlay pearl-gtd-table-stage-current-highlight)
+                    (setq pearl-gtd-table-stage-current-highlight nil))
                   (pearl-gtd-table-stage-apply-changes staging-buffer)
                   (dolist (move pearl-gtd-inbox--pending-moves)
                     (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move)))
