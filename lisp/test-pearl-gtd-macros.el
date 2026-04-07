@@ -22,7 +22,7 @@ NAME is the test name symbol.
 DOCSTRING is the test description.
 ARGS is a plist with keys: :setup, :files, :buffers, :mock, :body, :asserts, :teardown.
 :FILES is a list of (filename content) pairs to create.
-:BUFFERS is a list of (varname buffer-name) or (varname buffer-name initial-content) to bind.
+:BUFFERS is a list of (varname ‘buffer-name’) or (varname ‘buffer-name’ initial-content) to bind.
 :MOCK is a list of bindings for `cl-letf'."
   (declare (indent defun))
   (let ((setup (plist-get args :setup))
