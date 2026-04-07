@@ -42,11 +42,19 @@
 (defvar-local pearl-gtd-table-stage-current-highlight nil
   "Current highlight overlay in the staging buffer.")
 
+(defvar-local pearl-gtd-table-stage-marked-deleted-rows '()
+  "Buffer-local list of row numbers marked as deleted.")
+
+(defvar-local pearl-gtd-table-stage-marked-executed-rows '()
+  "Buffer-local list of row numbers marked as executed.")
+
 (defun pearl-gtd-table-stage-create (file-path &optional buffer-name)
   "Create a read-only buffer from the Org FILE-PATH and convert headlines to a table.
 Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
   (setq pearl-gtd-table-stage-original-file file-path)
   (setq pearl-gtd-table-stage-changes nil)
+  (setq pearl-gtd-table-stage-marked-deleted-rows '())
+  (setq pearl-gtd-table-stage-marked-executed-rows '())
   (let ((actual-buffer-name (or buffer-name (generate-new-buffer-name " *pearl-gtd-table-stage*")))
         (headlines '()))
     (with-current-buffer (get-buffer-create actual-buffer-name)
@@ -128,7 +136,8 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
                (end (progn (skip-chars-forward "^|") (point)))
                (ov (make-overlay start end)))
           (overlay-put ov 'face 'pearl-gtd-table-stage-deleted)
-          (overlay-put ov 'evaporate t))))))
+          (overlay-put ov 'evaporate t)))
+      (cl-pushnew row pearl-gtd-table-stage-marked-deleted-rows))))
 
 (defun pearl-gtd-table-stage-mark-executed (buffer row)
   "Mark the headline at ROW in BUFFER as executed (2min rule) with green strikethrough."
@@ -142,7 +151,8 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
                (end (progn (skip-chars-forward "^|") (point)))
                (ov (make-overlay start end)))
           (overlay-put ov 'face 'pearl-gtd-table-stage-executed)
-          (overlay-put ov 'evaporate t))))))
+          (overlay-put ov 'evaporate t)))
+      (cl-pushnew row pearl-gtd-table-stage-marked-executed-rows))))
 
 (defun pearl-gtd-table-stage-stage-change (buffer row col new-value)
   "Stage a change for ROW, COL with NEW-VALUE in BUFFER."
@@ -151,14 +161,13 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
     (let ((inhibit-read-only t))
       (save-excursion
         (goto-char (point-min))
-        (forward-line (1- row))  ; Use buffer line number instead of org-table-goto-line
+        (forward-line (1- row))
         (org-table-goto-column col)
         (org-table-blank-field)
         (insert new-value)
         (org-table-align)
-        (let ((ov (make-overlay (point) (line-end-position))))
-          (overlay-put ov 'face '(:background "yellow"))
-          (overlay-put ov 'evaporate t))))))
+        ;; Reapply deleted/executed marks after table realignment
+        (pearl-gtd-table-stage--reapply-marks buffer)))))
 
 (defun pearl-gtd-table-stage-apply-changes (buffer)
   "Clear the changes list without writing back to the file."
@@ -187,6 +196,34 @@ The ROW number can be used with other pearl-gtd-table-stage functions."
         ;; Process collected entries in original order
         (dolist (entry (nreverse entries))
           (funcall func (car entry) (cdr entry)))))))
+
+(defun pearl-gtd-table-stage--reapply-marks (buffer)
+  "Reapply all marks to BUFFER after table alignment."
+  (with-current-buffer buffer
+    (dolist (row pearl-gtd-table-stage-marked-deleted-rows)
+      (condition-case nil
+          (progn
+            (goto-char (point-min))
+            (forward-line (1- row))
+            (org-table-goto-column 1)
+            (let* ((start (point))
+                   (end (progn (skip-chars-forward "^|") (point)))
+                   (ov (make-overlay start end)))
+              (overlay-put ov 'face 'pearl-gtd-table-stage-deleted)
+              (overlay-put ov 'evaporate t)))
+        (error nil)))
+    (dolist (row pearl-gtd-table-stage-marked-executed-rows)
+      (condition-case nil
+          (progn
+            (goto-char (point-min))
+            (forward-line (1- row))
+            (org-table-goto-column 1)
+            (let* ((start (point))
+                   (end (progn (skip-chars-forward "^|") (point)))
+                   (ov (make-overlay start end)))
+              (overlay-put ov 'face 'pearl-gtd-table-stage-executed)
+              (overlay-put ov 'evaporate t)))
+        (error nil)))))
 
 (provide 'pearl-gtd-table-stage)
 

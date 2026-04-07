@@ -52,7 +52,7 @@ HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is t
   "Execute and stage immediate actions."
   (message "Executing '%s' immediately." headline)
   (pearl-gtd-table-stage-mark-executed buffer row)
-  (push (cons headline "actions.org") pearl-gtd-inbox--pending-moves))
+  (push (cons headline nil) pearl-gtd-inbox--pending-moves))
 
 (defun pearl-gtd-inbox-handle-further-checks (headline buffer row)
   "Handle further checks for non-immediate actionable entries.
@@ -75,7 +75,10 @@ HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the
         (push (format ":PROJECT:%s:" project-name) tags)))
 
     (when tags
-      (pearl-gtd-table-stage-stage-change buffer row 2 (mapconcat 'identity (nreverse tags) " ")))))
+      (pearl-gtd-table-stage-stage-change buffer row 2 (mapconcat 'identity (nreverse tags) " "))))
+
+  ;; Move actionable items to actions.org after tagging
+  (push (cons headline "actions.org") pearl-gtd-inbox--pending-moves))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer row)
   "Handle non-actionable entries.

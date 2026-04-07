@@ -45,9 +45,7 @@
              (with-current-buffer
                  (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
                (search-forward "* Quick task" nil t)))
-           (should (file-exists-p (expand-file-name "actions.org" pearl-gtd-init-base-directory)))
-  :teardown (dolist (file '("inbox.org" "actions.org"))
-              (delete-file (expand-file-name file pearl-gtd-init-base-directory))))
+  :teardown (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
 
 ;; Test processing path: actionable with context
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-context
