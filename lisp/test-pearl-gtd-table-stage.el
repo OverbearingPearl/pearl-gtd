@@ -20,129 +20,332 @@
 (require 'cl-lib)
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-create-buffer
-    "Test staging buffer creation and basic properties."
+    "Test staging buffer creation with correct table structure."
   :setup nil
-  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Heading\n* Another Heading\n"))
-  :body (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
+  :files (("test.org" "* First Task\n* Second Task\n"))
+  :buffers ((test-stage-buf " *test-stage*"))
+  :mock (((symbol-function 'display-buffer) (lambda (buffer &rest _)
+                                               (setq test-stage-buf buffer))))
+  :body (setq test-stage-buf (pearl-gtd-table-stage-create
+                               (expand-file-name "test.org" temp-dir)
+                               " *test-stage*"))
   :asserts (progn
-             (should (get-buffer pearl-gtd-table-stage-buffer-name))
-             (should (string= pearl-gtd-table-stage-original-file 
+             (should (bufferp test-stage-buf))
+             (should (string= pearl-gtd-table-stage-original-file
                              (expand-file-name "test.org" temp-dir)))
              (should (null pearl-gtd-table-stage-changes))
-             (with-current-buffer pearl-gtd-table-stage-buffer-name
-               (should buffer-read-only)))
-  :teardown (when (get-buffer pearl-gtd-table-stage-buffer-name)
-              (kill-buffer pearl-gtd-table-stage-buffer-name)))
+             (with-current-buffer test-stage-buf
+               (should buffer-read-only)
+               (goto-char (point-min))
+               (should (search-forward "| Headline" nil t))
+               (should (search-forward "| Age" nil t))
+               (should (search-forward "| Tags" nil t))))
+  :teardown nil)
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-display-table
-    "Test table content display and alignment."
-  :setup nil
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-map-entries
+    "Test mapping over entries provides correct headline and entry-ref."
+  :setup (setq test-collected-entries nil)
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Column1\n* Value1\n"))
-  :body (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-  :asserts (with-current-buffer pearl-gtd-table-stage-buffer-name
-             (goto-char (point-min))
-             (should (search-forward "| Headline" nil t))
-             (should (search-forward "| Tags" nil t))
-             (should (search-forward "| State" nil t))
-             (should (search-forward "| Age" nil t)))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
-
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-highlight-entry
-    "Test visual highlight of entries."
-  :setup nil
-  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* First Heading\n* Second Heading\n"))
+  :files (("test.org" "* Task A\n* Task B\n* Task C\n"))
+  :buffers ((test-buf " *test-stage*"))
   :body (progn
-          (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-          (with-current-buffer pearl-gtd-table-stage-buffer-name
-            (pearl-gtd-table-stage-highlight-entry (current-buffer) 3)))  ; Row 3
-  :asserts (with-current-buffer pearl-gtd-table-stage-buffer-name
-             (let ((overlays (overlays-at (save-excursion 
-                                            (goto-char (point-min))
-                                            (forward-line 2)  ; To row 3
-                                            (line-beginning-position)))))
-               (should (cl-some (lambda (ov) (equal (overlay-get ov 'face) '(:background "yellow"))) 
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline entry-ref)
+               (push (cons headline entry-ref) test-collected-entries)))
+            (setq test-collected-entries (nreverse test-collected-entries))))
+  :asserts (progn
+             (should (= (length test-collected-entries) 3))
+             (should (string= (car (nth 0 test-collected-entries)) "Task A"))
+             (should (string= (car (nth 1 test-collected-entries)) "Task B"))
+             (should (string= (car (nth 2 test-collected-entries)) "Task C"))
+             ;; Verify entry-ref structure: (buffer . row)
+             (should (bufferp (car (cdr (nth 0 test-collected-entries)))))
+             (should (numberp (cdr (cdr (nth 0 test-collected-entries))))))
+  :teardown (progn
+              (setq test-collected-entries nil)
+              (when (buffer-live-p test-buf)
+                (kill-buffer test-buf))))
+
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-highlight-single
+    "Test highlighting a single entry."
+  :setup nil
+  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+  :files (("test.org" "* Single Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-highlight-entry entry-ref)))
+  :asserts (with-current-buffer test-buf
+             (let ((overlays (overlays-in (point-min) (point-max))))
+               (should (cl-some (lambda (ov)
+                                 (eq (overlay-get ov 'face)
+                                     'pearl-gtd-table-stage-highlight))
                                overlays))))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
+
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-highlight-move
+    "Test that highlighting moves from one entry to another (only one highlight at a time)."
+  :setup nil
+  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+  :files (("test.org" "* Task One\n* Task Two\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (first-ref second-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (if (string= headline "Task One")
+                   (setq first-ref ref)
+                 (setq second-ref ref))))
+            ;; Highlight first
+            (pearl-gtd-table-stage-highlight-entry first-ref)
+            ;; Move highlight to second
+            (pearl-gtd-table-stage-highlight-entry second-ref)))
+  :asserts (with-current-buffer test-buf
+             (let ((highlight-overlays
+                    (cl-remove-if-not
+                     (lambda (ov)
+                       (eq (overlay-get ov 'face) 'pearl-gtd-table-stage-highlight))
+                     (overlays-in (point-min) (point-max)))))
+               ;; Should have exactly one highlight
+               (should (= (length highlight-overlays) 1))
+               ;; And it should be on the second task's line
+               (goto-char (overlay-start (car highlight-overlays)))
+               (should (looking-at "| Task Two"))))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
+
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-mark-deleted
+    "Test marking an entry as deleted (trash)."
+  :setup nil
+  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+  :files (("test.org" "* Delete Me\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-mark-deleted entry-ref)))
+  :asserts (with-current-buffer test-buf
+             (goto-char (point-min))
+             (forward-line 2) ; To data row
+             (org-table-goto-column 1) ; Move to headline column where overlay is
+             (let ((overlays (overlays-at (point))))
+               (should (cl-some (lambda (ov)
+                                 (eq (overlay-get ov 'face)
+                                     'pearl-gtd-table-stage-deleted))
+                               overlays))))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
+
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-mark-executed
+    "Test marking an entry as executed (2min rule)."
+  :setup nil
+  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+  :files (("test.org" "* Quick Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-mark-executed entry-ref)))
+  :asserts (with-current-buffer test-buf
+             (goto-char (point-min))
+             (forward-line 2)
+             (org-table-goto-column 1) ; Move to headline column where overlay is
+             (let ((overlays (overlays-at (point))))
+               (should (cl-some (lambda (ov)
+                                 (eq (overlay-get ov 'face)
+                                     'pearl-gtd-table-stage-executed))
+                               overlays))))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-add-annotation
-    "Test visual annotation addition."
+    "Test adding annotation to an entry."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Test Heading\n"))
-  :body (progn
-          (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-          (with-current-buffer pearl-gtd-table-stage-buffer-name
-            (pearl-gtd-table-stage-add-annotation (current-buffer) 3 "Test Annotation")))
-  :asserts (with-current-buffer pearl-gtd-table-stage-buffer-name
+  :files (("test.org" "* Annotated Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-add-annotation entry-ref "Test Note")))
+  :asserts (with-current-buffer test-buf
              (goto-char (point-min))
-             (forward-line 2)  ; To row 3
-             (should (search-forward " => Test Annotation" (line-end-position) t)))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+             (forward-line 2)
+             (should (search-forward " => Test Note" (line-end-position) t)))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-stage-single-change
-    "Test staging a single change."
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-stage-change
+    "Test staging a change to a cell."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Test\n"))
-  :body (progn
-          (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-          (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 3 2 "3"))  ; Row 3, Col 2
+  :files (("test.org" "* Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-stage-change entry-ref 3 "@context")))
   :asserts (progn
-             (should (equal pearl-gtd-table-stage-changes '((3 2 "3"))))
-             (with-current-buffer pearl-gtd-table-stage-buffer-name
+             (should (= (length pearl-gtd-table-stage-changes) 1))
+             (should (equal (car pearl-gtd-table-stage-changes)
+                           (list 3 3 "@context"))) ; row 3, col 3, value
+             (with-current-buffer test-buf
                (goto-char (point-min))
-               (org-table-goto-line 3)
-               (org-table-goto-column 2)
-               (let ((overlays (overlays-at (point))))
-                 (should (cl-some (lambda (ov) (equal (overlay-get ov 'face) '(:background "yellow")))
-                                 overlays)))))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+               (forward-line 2)
+               (should (search-forward "@context" (line-end-position) t))))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-stage-multiple-changes
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-multiple-changes
     "Test staging multiple changes accumulates correctly."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* A\n* B\n* C\n"))
-  :body (progn
-          (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-          (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 3 2 "X")
-          (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 4 3 "Y")
-          (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 5 1 "Z"))
+  :files (("test.org" "* Task A\n* Task B\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (ref-a ref-b)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (if (string= headline "Task A")
+                   (setq ref-a ref)
+                 (setq ref-b ref))))
+            (pearl-gtd-table-stage-stage-change ref-a 3 "@home")
+            (pearl-gtd-table-stage-stage-change ref-b 3 "@office")))
   :asserts (progn
-             (should (= (length pearl-gtd-table-stage-changes) 3))
-             (should (member '(3 2 "X") pearl-gtd-table-stage-changes))
-             (should (member '(4 3 "Y") pearl-gtd-table-stage-changes))
-             (should (member '(5 1 "Z") pearl-gtd-table-stage-changes)))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+             (should (= (length pearl-gtd-table-stage-changes) 2))
+             (should (cl-some (lambda (c) (equal (nth 2 c) "@home"))
+                             pearl-gtd-table-stage-changes))
+             (should (cl-some (lambda (c) (equal (nth 2 c) "@office"))
+                             pearl-gtd-table-stage-changes)))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-clear-changes
     "Test clearing staged changes."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Test\n"))
-  :body (progn
-          (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-          (pearl-gtd-table-stage-stage-change (get-buffer pearl-gtd-table-stage-buffer-name) 3 2 "9")
-          (pearl-gtd-table-stage-clear-changes (get-buffer pearl-gtd-table-stage-buffer-name)))
-  :asserts (progn
-             (should (null pearl-gtd-table-stage-changes)))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+  :files (("test.org" "* Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-stage-change entry-ref 3 "tag")
+            (pearl-gtd-table-stage-clear-changes test-buf)))
+  :asserts (should (null pearl-gtd-table-stage-changes))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-keymap-bindings
-    "Test that keymap bindings are set correctly."
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-reapply-marks
+    "Test that marks are reapplied after table alignment (stage-change triggers reapply)."
   :setup nil
   :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* A\n"))
-  :body (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir))
-  :asserts (with-current-buffer pearl-gtd-table-stage-buffer-name
-             (should (eq (lookup-key (current-local-map) (kbd "C-c C-s"))
-                        'pearl-gtd-table-stage-stage-change))
-             (should (eq (lookup-key (current-local-map) (kbd "C-c C-a"))
-                        'pearl-gtd-table-stage-clear-changes)))
-  :teardown (kill-buffer pearl-gtd-table-stage-buffer-name))
+  :files (("test.org" "* Marked Task\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (let (entry-ref)
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (setq entry-ref ref)))
+            (pearl-gtd-table-stage-mark-deleted entry-ref)
+            (pearl-gtd-table-stage-stage-change entry-ref 3 "@context")))
+  :asserts (with-current-buffer test-buf
+             (goto-char (point-min))
+             (forward-line 2)
+             (org-table-goto-column 1) ; Move to headline column where overlay is
+             (let ((overlays (overlays-at (point))))
+               (should (cl-some (lambda (ov)
+                                 (eq (overlay-get ov 'face)
+                                     'pearl-gtd-table-stage-deleted))
+                               overlays))
+               (should (search-forward "@context" (line-end-position) t))))
+  :teardown (when (buffer-live-p test-buf)
+              (kill-buffer test-buf)))
+
+(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-multi-entry-processing
+    "Test processing multiple entries sequentially with different operations."
+  :setup (setq test-operations-log nil)
+  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+  :files (("test.org" "* Task One\n* Task Two\n* Task Three\n"))
+  :buffers ((test-buf " *test-stage*"))
+  :body (progn
+          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
+          (with-current-buffer test-buf
+            (pearl-gtd-table-stage-map-entries
+             test-buf
+             (lambda (headline ref)
+               (cond
+                ((string= headline "Task One")
+                 (pearl-gtd-table-stage-mark-deleted ref)
+                 (push "one-deleted" test-operations-log))
+                ((string= headline "Task Two")
+                 (pearl-gtd-table-stage-mark-executed ref)
+                 (push "two-executed" test-operations-log))
+                ((string= headline "Task Three")
+                 (pearl-gtd-table-stage-stage-change ref 3 "@context")
+                 (push "three-tagged" test-operations-log)))))))
+  :asserts (progn
+             (should (= (length test-operations-log) 3))
+             (should (member "one-deleted" test-operations-log))
+             (should (member "two-executed" test-operations-log))
+             (should (member "three-tagged" test-operations-log))
+             ;; Verify visual states in buffer
+             (with-current-buffer test-buf
+               (goto-char (point-min))
+               (forward-line 2) ; Task One
+               (org-table-goto-column 1)
+               (let ((overlays (overlays-at (point))))
+                 (should (cl-some (lambda (ov)
+                                   (eq (overlay-get ov 'face)
+                                       'pearl-gtd-table-stage-deleted))
+                                 overlays)))
+               (forward-line 1) ; Task Two
+               (org-table-goto-column 1)
+               (let ((overlays (overlays-at (point))))
+                 (should (cl-some (lambda (ov)
+                                   (eq (overlay-get ov 'face)
+                                       'pearl-gtd-table-stage-executed))
+                                 overlays)))
+               (forward-line 1) ; Task Three
+               (should (search-forward "@context" (line-end-position) t))))
+  :teardown (progn
+              (setq test-operations-log nil)
+              (when (buffer-live-p test-buf)
+                (kill-buffer test-buf))))
 
 (provide 'test-pearl-gtd-table-stage)
 
