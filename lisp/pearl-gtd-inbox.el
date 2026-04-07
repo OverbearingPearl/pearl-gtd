@@ -18,8 +18,8 @@
 (require 'org)
 
 (defvar pearl-gtd-inbox--pending-moves nil
-  "List of (headline . target-file) pending to be moved after staging.
-If target-file is nil, means delete (trash).")
+  "List of (list headline target-file properties-string) pending to be moved after staging.
+If target-file is nil, means delete (trash). Properties-string contains tags and properties.")
 
 (defvar pearl-gtd-inbox-stage-buffer-name nil
   "The name of the current inbox staging buffer.")
@@ -52,7 +52,7 @@ HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is t
   "Execute and stage immediate actions."
   (message "Executing '%s' immediately." headline)
   (pearl-gtd-table-stage-mark-executed buffer row)
-  (push (cons headline nil) pearl-gtd-inbox--pending-moves))
+  (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
 
 (defun pearl-gtd-inbox-handle-further-checks (headline buffer row)
   "Handle further checks for non-immediate actionable entries.
@@ -74,11 +74,11 @@ HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the
       (when (not (string= project-name ""))
         (push (format ":PROJECT:%s:" project-name) tags)))
 
-    (when tags
-      (pearl-gtd-table-stage-stage-change buffer row 2 (mapconcat 'identity (nreverse tags) " "))))
-
-  ;; Move actionable items to actions.org after tagging
-  (push (cons headline "actions.org") pearl-gtd-inbox--pending-moves))
+    (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
+      (when props
+        (pearl-gtd-table-stage-stage-change buffer row 2 props))
+      ;; Store headline, target-file, and properties
+      (push (list headline "actions.org" props) pearl-gtd-inbox--pending-moves))))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer row)
   "Handle non-actionable entries.
@@ -87,13 +87,13 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is th
     (cond
      ((string= assign-to "reference")
       (pearl-gtd-table-stage-add-annotation buffer row "-> reference")
-      (push (cons headline "reference.org") pearl-gtd-inbox--pending-moves))
+      (push (list headline "reference.org" nil) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
       (pearl-gtd-table-stage-add-annotation buffer row "-> someday")
-      (push (cons headline "someday.org") pearl-gtd-inbox--pending-moves))
+      (push (list headline "someday.org" nil) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
       (pearl-gtd-table-stage-mark-deleted buffer row)
-      (push (cons headline nil) pearl-gtd-inbox--pending-moves))
+      (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
      (t (pearl-gtd-table-stage-add-annotation buffer row "No change")))))
 
 (defun pearl-gtd-inbox-process ()
@@ -117,7 +117,7 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is th
                      (pearl-gtd-inbox-process-entry headline staging-buffer row)))
                   (pearl-gtd-table-stage-apply-changes staging-buffer)
                   (dolist (move pearl-gtd-inbox--pending-moves)
-                    (pearl-gtd-inbox-do-move (car move) (cdr move)))
+                    (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move)))
                   (when (and (file-exists-p inbox-file)
                              (= 0 (file-attribute-size (file-attributes inbox-file))))
                     (delete-file inbox-file)))
@@ -145,24 +145,52 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ROW is th
   "Check if HEADLINE is delegated."
   (string-match-p ":DELEGATED:" headline))
 
-(defun pearl-gtd-inbox-do-move (headline target-file)
+(defun pearl-gtd-inbox-do-move (headline target-file properties-string)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
-If TARGET-FILE is nil, just delete from inbox (trash)."
-  (let ((inbox-path (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
+If TARGET-FILE is nil, just delete from inbox (trash).
+PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyProject:\" and tags like \"@office\"."
+  (let ((inbox-path (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
+        subtree-content)
+    ;; First, add properties and tags to the entry in inbox
+    (when (and properties-string (not (string= properties-string "")))
+      (with-current-buffer (find-file-noselect inbox-path)
+        (org-mode)
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^\\*+ " (regexp-quote headline) "\\($\\| \\)") nil t)
+          (beginning-of-line)
+          ;; Parse components separated by space
+          (let ((components (split-string properties-string " " t)))
+            (dolist (comp components)
+              (cond
+               ;; Property format: :KEY:VALUE:
+               ((string-match "^:\\([^:]+\\):\\(.+\\):$" comp)
+                (let ((prop-name (match-string 1 comp))
+                      (prop-value (match-string 2 comp)))
+                  (org-set-property prop-name prop-value)))
+               ;; Tag format: @context or simple tag
+               ((string-match "^@?\\(.+\\)$" comp)
+                (let ((tag (match-string 1 comp)))
+                  (org-toggle-tag tag 'on))))))
+          (save-buffer))))
+    ;; Then, extract the subtree from inbox (now with properties)
     (with-current-buffer (find-file-noselect inbox-path)
       (org-mode)
       (goto-char (point-min))
-      (when (search-forward (concat "* " headline) nil t)
+      (when (re-search-forward (concat "^\\*+ " (regexp-quote headline) "\\($\\| \\)") nil t)
         (beginning-of-line)
         (org-mark-subtree)
+        (setq subtree-content (buffer-substring (region-beginning) (region-end)))
         (kill-region (region-beginning) (region-end))
         (save-buffer)))
-    (when target-file
+    ;; Then, insert to target file if needed
+    (when (and target-file subtree-content)
       (let ((target-path (expand-file-name target-file pearl-gtd-init-base-directory)))
         (with-current-buffer (find-file-noselect target-path)
           (org-mode)
           (goto-char (point-max))
-          (insert (format "* %s\n" headline))
+          (unless (bolp) (insert "\n"))
+          (insert subtree-content)
+          (unless (bolp) (insert "\n"))
           (save-buffer))))))
 
 (provide 'pearl-gtd-inbox)
