@@ -58,21 +58,26 @@ HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is t
   "Handle further checks for non-immediate actionable entries.
 HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the row number."
   (let ((tags '()))
-    (let ((context (read-string (format "Context for '%s' (e.g. @home, @office, RET to skip): " headline))))
+    ;; Context: single value
+    (let ((context (read-string (format "Context for '%s' (e.g. @home, RET to skip): " headline))))
       (when (not (string= context ""))
         (push context tags)))
 
+    ;; Schedule: single value
     (let ((schedule (read-string (format "Schedule for '%s' (e.g. 2026-04-10, RET to skip): " headline))))
       (when (not (string= schedule ""))
         (push (format ":SCHEDULED:%s:" schedule) tags)))
 
+    ;; Delegated: single value
     (let ((delegatee (read-string (format "Delegate '%s' to (e.g. John, RET to skip): " headline))))
       (when (not (string= delegatee ""))
         (push (format ":DELEGATED:%s:" delegatee) tags)))
 
-    (let ((project-name (read-string (format "Project name for '%s' (RET to skip): " headline))))
-      (when (not (string= project-name ""))
-        (push (format ":PROJECT:%s:" project-name) tags)))
+    ;; Project: supports multiple projects (comma separated)
+    (let ((project-input (read-string (format "Project name(s) for '%s' (comma separated, RET to skip): " headline))))
+      (let ((projects (mapcar #'string-trim (split-string project-input "," t))))
+        (when projects
+          (push (format ":PROJECT:%s:" (mapconcat 'identity projects ",")) tags))))
 
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
@@ -167,10 +172,13 @@ PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyP
                 (let ((prop-name (match-string 1 comp))
                       (prop-value (match-string 2 comp)))
                   (org-set-property prop-name prop-value)))
-               ;; Tag format: @context or simple tag
-               ((string-match "^@?\\(.+\\)$" comp)
+               ;; Context tag format: @context
+               ((string-match "^@\\(.+\\)$" comp)
                 (let ((tag (match-string 1 comp)))
-                  (org-toggle-tag tag 'on))))))
+                  (org-toggle-tag tag 'on)))
+               ;; Simple tag (must not start with : to avoid matching properties)
+               ((not (string-match "^:" comp))
+                (org-toggle-tag comp 'on)))))
           (save-buffer))))
     ;; Then, extract the subtree from inbox (now with properties)
     (with-current-buffer (find-file-noselect inbox-path)
