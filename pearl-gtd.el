@@ -58,7 +58,7 @@
     ;; Load .el source files directly, ignoring .elc
     (dolist (file el-files)
       (when (string-match "^[^.]+\\.el$" file)
-        (load-file (expand-file-name file lisp-dir) nil t)  ; Force reload
+        (load-file (expand-file-name file lisp-dir))
         (message "Reloaded %s" file)))
     (message "Modules reloaded.")))
 
