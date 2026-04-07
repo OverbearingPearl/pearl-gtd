@@ -101,7 +101,8 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
 (defun pearl-gtd-table-stage-map-entries (buffer func)
   "Map over all data entries in the staging BUFFER, calling FUNC for each.
 FUNC receives two arguments: the HEADLINE text and an ENTRY-REF object.
-ENTRY-REF is an opaque reference that can be passed to other pearl-gtd-table-stage functions."
+ENTRY-REF is an opaque reference that can be passed to other pearl-gtd-table-stage functions.
+BUFFER is the buffer containing the staged entries."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-min))
@@ -197,13 +198,15 @@ ENTRY-REF is an opaque reference that can be passed to other pearl-gtd-table-sta
           (pearl-gtd-table-stage--reapply-marks buffer))))))
 
 (defun pearl-gtd-table-stage-clear-changes (buffer)
-  "Clear the changes list without writing back to the file."
+  "Clear the changes list without writing back to the file.
+BUFFER is the buffer containing the staged entries."
   (with-current-buffer buffer
     (setq pearl-gtd-table-stage-changes nil)
     (message "Changes cleared.")))
 
 (defun pearl-gtd-table-stage--reapply-marks (buffer)
-  "Reapply all marks to BUFFER after table alignment."
+  "Reapply all marks to BUFFER after table alignment.
+BUFFER is the buffer containing the staged entries."
   (with-current-buffer buffer
     (dolist (row pearl-gtd-table-stage-marked-deleted-rows)
       (condition-case nil
