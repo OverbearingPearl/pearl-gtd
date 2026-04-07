@@ -94,7 +94,6 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
       (use-local-map (copy-keymap org-mode-map))
       (local-set-key (kbd "C-c C-s") 'pearl-gtd-table-stage-stage-change)
       (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-clear-changes)
-      (local-set-key (kbd "C-c C-a") 'pearl-gtd-table-stage-clear-changes)
       (display-buffer (current-buffer))
       (current-buffer))))  ; Return the buffer object
 

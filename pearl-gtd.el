@@ -37,6 +37,7 @@
   "Run all Pearl-GTD unit tests."
   (interactive)
   (require 'ert)
+  (ert-delete-all-tests)
   (pearl-gtd-reload-modules)
   (dolist (file (directory-files (expand-file-name "lisp" pearl-gtd-directory) nil "^test-.*\\.el$"))
     (require (intern (file-name-base file))))

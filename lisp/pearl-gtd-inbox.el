@@ -105,7 +105,7 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ENTRY-REF
   "Process the inbox according to GTD clarify and organize steps, with user interaction via staging buffer."
   (let ((inbox-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
     (setq pearl-gtd-inbox--pending-moves '())
-    (when (get-buffer pearl-gtd-inbox-stage-buffer-name)
+    (when (and pearl-gtd-inbox-stage-buffer-name (get-buffer pearl-gtd-inbox-stage-buffer-name))
       (kill-buffer pearl-gtd-inbox-stage-buffer-name))
     (if (file-exists-p inbox-file)
         (let* ((attrs (file-attributes inbox-file))
