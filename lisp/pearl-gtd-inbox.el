@@ -34,7 +34,9 @@ If target-file is nil, means delete (trash). Properties-string contains tags and
 
 (defun pearl-gtd-inbox-process-entry (headline buffer entry-ref)
   "Process a single entry according to GTD steps.
-HEADLINE is the entry heading to process. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
+HEADLINE is the entry heading to process.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry."
   (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " headline))))
     (if is-actionable
         (pearl-gtd-inbox-handle-actionable headline buffer entry-ref)
@@ -42,21 +44,28 @@ HEADLINE is the entry heading to process. BUFFER is the staging buffer. ENTRY-RE
 
 (defun pearl-gtd-inbox-handle-actionable (headline buffer entry-ref)
   "Handle actionable entries.
-HEADLINE is the entry heading to process. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
+HEADLINE is the entry heading to process.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry."
   (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " headline))))
     (if can-do-in-2min
         (pearl-gtd-inbox-execute-immediately headline buffer entry-ref)
       (pearl-gtd-inbox-handle-further-checks headline buffer entry-ref))))
 
 (defun pearl-gtd-inbox-execute-immediately (headline buffer entry-ref)
-  "Execute and stage immediate actions."
+  "Execute and stage immediate actions.
+HEADLINE is the entry heading to process.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry."
   (message "Executing '%s' immediately." headline)
   (pearl-gtd-table-stage-mark-executed entry-ref)
   (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
 
 (defun pearl-gtd-inbox-handle-further-checks (headline buffer entry-ref)
   "Handle further checks for non-immediate actionable entries.
-HEADLINE is the entry heading to check. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
+HEADLINE is the entry heading to check.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry."
   (let ((tags '()))
     ;; Context: single value
     (let ((context (read-string (format "Context for '%s' (e.g. @home, RET to skip): " headline))))
@@ -87,7 +96,9 @@ HEADLINE is the entry heading to check. BUFFER is the staging buffer. ENTRY-REF 
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref)
   "Handle non-actionable entries.
-HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ENTRY-REF is the reference to the entry."
+HEADLINE is the entry heading to handle.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " headline))))
     (cond
      ((string= assign-to "reference")
@@ -157,7 +168,10 @@ HEADLINE is the entry heading to handle. BUFFER is the staging buffer. ENTRY-REF
 (defun pearl-gtd-inbox-do-move (headline target-file properties-string)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
 If TARGET-FILE is nil, just delete from inbox (trash).
-PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyProject:\" and tags like \"@office\"."
+PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyProject:\" and tags like \"@office\".
+HEADLINE is the entry heading to process.
+TARGET-FILE is the destination file.
+PROPERTIES-STRING is the string of properties."
   (let ((inbox-path (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
         subtree-content)
     ;; First, add properties and tags to the entry in inbox
