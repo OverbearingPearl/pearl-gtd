@@ -73,7 +73,7 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
       ;; Clear buffer and insert only the table
       (erase-buffer)
       (insert "| Headline | Age | Tags |\n")
-      (insert "|----------|-----+------|\n")
+      (insert "|----------+-----+------|\n")
       (dolist (entry (nreverse headlines))
         (let* ((created-str (nth 3 entry))
                (age-str (if created-str
@@ -89,7 +89,6 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
                           (nth 0 entry)
                           age-str
                           (mapconcat 'identity (nth 1 entry) ",")))))
-      (org-mode)
       (org-table-align)
       (setq buffer-read-only t)
       (use-local-map (copy-keymap org-mode-map))
