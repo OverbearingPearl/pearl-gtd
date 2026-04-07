@@ -57,20 +57,25 @@ HEADLINE is the entry heading to process. BUFFER is the staging buffer. ROW is t
 (defun pearl-gtd-inbox-handle-further-checks (headline buffer row)
   "Handle further checks for non-immediate actionable entries.
 HEADLINE is the entry heading to check. BUFFER is the staging buffer. ROW is the row number."
-  (let ((is-contextual (y-or-n-p (format "Does '%s' involve a context? " headline)))
-        (is-scheduled (y-or-n-p (format "Is '%s' scheduled? " headline)))
-        (is-delegated (y-or-n-p (format "Is '%s' delegated? " headline)))
-        (is-project (y-or-n-p (format "Is '%s' a project? " headline))))
-    (when is-contextual
-      (pearl-gtd-table-stage-stage-change buffer row 2 ":CONTEXT:")  ; Assuming column 2 for tags
-      (pearl-gtd-table-stage-add-annotation buffer row "Added :CONTEXT:"))
-    (when is-scheduled
-      (pearl-gtd-table-stage-add-annotation buffer row "SCHEDULED"))
-    (when is-delegated
-      (pearl-gtd-table-stage-stage-change buffer row 2 ":DELEGATED:")  ; Assuming column 2 for tags
-      (pearl-gtd-table-stage-add-annotation buffer row "Added :DELEGATED:"))
-    (when is-project
-      (pearl-gtd-table-stage-add-annotation buffer row "PROJECT"))))
+  (let ((tags '()))
+    (let ((context (read-string (format "Context for '%s' (e.g. @home, @office, RET to skip): " headline))))
+      (when (not (string= context ""))
+        (push context tags)))
+
+    (let ((schedule (read-string (format "Schedule for '%s' (e.g. 2026-04-10, RET to skip): " headline))))
+      (when (not (string= schedule ""))
+        (push (format ":SCHEDULED:%s:" schedule) tags)))
+
+    (let ((delegatee (read-string (format "Delegate '%s' to (e.g. John, RET to skip): " headline))))
+      (when (not (string= delegatee ""))
+        (push (format ":DELEGATED:%s:" delegatee) tags)))
+
+    (let ((project-name (read-string (format "Project name for '%s' (RET to skip): " headline))))
+      (when (not (string= project-name ""))
+        (push (format ":PROJECT:%s:" project-name) tags)))
+
+    (when tags
+      (pearl-gtd-table-stage-stage-change buffer row 2 (mapconcat 'identity (nreverse tags) " ")))))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer row)
   "Handle non-actionable entries.

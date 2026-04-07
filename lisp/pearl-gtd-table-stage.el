@@ -148,9 +148,10 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
   "Stage a change for ROW, COL with NEW-VALUE in BUFFER."
   (with-current-buffer buffer
     (push (list row col new-value) pearl-gtd-table-stage-changes)
-    (let ((inhibit-read-only t))  ; Allow modifications in read-only buffer
+    (let ((inhibit-read-only t))
       (save-excursion
-        (org-table-goto-line row)
+        (goto-char (point-min))
+        (forward-line (1- row))  ; Use buffer line number instead of org-table-goto-line
         (org-table-goto-column col)
         (org-table-blank-field)
         (insert new-value)

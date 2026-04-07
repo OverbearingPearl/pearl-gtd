@@ -59,13 +59,22 @@
             (cond
               ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
-              ((string-match "context" (car args)) t)
-              (t nil)))))
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Context" (car args)) "@office")
+              ((string-match "Schedule" (car args)) "")
+              ((string-match "Delegate" (car args)) "")
+              ((string-match "Project" (car args)) "")
+              (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
-                 (should (search-forward " => Added :CONTEXT:" nil t)))))
+                 (goto-char (point-min))
+                 (forward-line 2)
+                 (should (search-forward "@office" (line-end-position) t)))))
   :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable with scheduled date
@@ -78,13 +87,22 @@
             (cond
               ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
-              ((string-match "scheduled" (car args)) t)
-              (t nil)))))
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Context" (car args)) "")
+              ((string-match "Schedule" (car args)) "2026-04-10")
+              ((string-match "Delegate" (car args)) "")
+              ((string-match "Project" (car args)) "")
+              (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
-                 (should (search-forward " => Added SCHEDULED:" nil t)))))
+                 (goto-char (point-min))
+                 (forward-line 2)
+                 (should (search-forward ":SCHEDULED:2026-04-10:" (line-end-position) t)))))
   :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable with delegation
@@ -97,13 +115,22 @@
             (cond
               ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
-              ((string-match "delegated" (car args)) t)
-              (t nil)))))
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Context" (car args)) "")
+              ((string-match "Schedule" (car args)) "")
+              ((string-match "Delegate" (car args)) "John")
+              ((string-match "Project" (car args)) "")
+              (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
-                 (should (search-forward " => Added :DELEGATED:" nil t)))))
+                 (goto-char (point-min))
+                 (forward-line 2)
+                 (should (search-forward ":DELEGATED:John:" (line-end-position) t)))))
   :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: actionable as a project
@@ -116,13 +143,22 @@
             (cond
               ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
-              ((string-match "project" (car args)) t)
-              (t nil)))))
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Context" (car args)) "")
+              ((string-match "Schedule" (car args)) "")
+              ((string-match "Delegate" (car args)) "")
+              ((string-match "Project" (car args)) "MyProject")
+              (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (let ((stage-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
              (when stage-buffer
                (with-current-buffer stage-buffer
-                 (should (search-forward " => Added :PROJECT:" nil t)))))
+                 (goto-char (point-min))
+                 (forward-line 2)
+                 (should (search-forward ":PROJECT:MyProject:" (line-end-position) t)))))
   :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
 
 ;; Test processing path: non-actionable to reference
