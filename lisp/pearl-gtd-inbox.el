@@ -122,7 +122,7 @@ ENTRY-REF is the reference to the entry."
         (let* ((attrs (file-attributes inbox-file))
                (file-size (file-attribute-size attrs)))
           (if (> file-size 0)
-              (let ((staging-buffer (pearl-gtd-table-stage-create inbox-file " *custom-inbox-stage*")))
+              (let ((staging-buffer (pearl-gtd-table-stage-create inbox-file " *inbox-processing*")))
                 (setq pearl-gtd-inbox-stage-buffer-name (buffer-name staging-buffer))
                 (with-current-buffer staging-buffer
                   (org-mode)
