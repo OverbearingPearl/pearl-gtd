@@ -39,7 +39,8 @@
                (goto-char (point-min))
                (should (search-forward "| Headline" nil t))
                (should (search-forward "| Age" nil t))
-               (should (search-forward "| Tags" nil t))))
+               (should (search-forward "| Tags" nil t))
+               (should (search-forward "| Remarks" nil t))))
   :teardown nil)
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-map-entries

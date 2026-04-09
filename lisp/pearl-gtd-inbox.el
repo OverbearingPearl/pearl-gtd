@@ -18,8 +18,11 @@
 (require 'org)
 
 (defvar pearl-gtd-inbox--pending-moves nil
-  "List of (list headline target-file properties-string) pending to be moved after staging.
-If target-file is nil, means delete (trash). Properties-string contains tags and properties.")
+  "List of (list original-headline target-file properties-string new-headline remarks) pending to be moved after staging.
+If target-file is nil, means delete (trash).
+Properties-string contains tags and properties.
+New-headline is the clarified headline (nil if unchanged).
+Remarks is the clarified remarks text (nil if none).")
 
 (defvar pearl-gtd-inbox-stage-buffer-name nil
   "The name of the current inbox staging buffer.")
@@ -32,58 +35,92 @@ If target-file is nil, means delete (trash). Properties-string contains tags and
       (insert (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n" item (format-time-string "%Y-%m-%d %H:%M:%S")))
       (save-buffer))))
 
+(defun pearl-gtd-inbox-clarify-entry (headline buffer entry-ref)
+  "Clarify the entry by asking user to rename or add remarks.
+HEADLINE is the current entry heading.
+BUFFER is the staging buffer.
+ENTRY-REF is the reference to the entry.
+Returns a cons cell (NEW-HEADLINE . REMARKS)."
+  (let ((new-headline nil)
+        (remarks nil))
+    ;; Ask for rename
+    (let ((rename (read-string (format "Rename '%s'? (RET to keep, or type new name): " headline))))
+      (when (not (string= rename ""))
+        (setq new-headline rename)
+        (pearl-gtd-table-stage-stage-change entry-ref 1 rename)))
+    ;; Ask for remarks
+    (let ((remark-text (read-string (format "Add remarks for '%s'? (RET to skip, or type remarks): " (or new-headline headline)))))
+      (when (not (string= remark-text ""))
+        (setq remarks remark-text)
+        ;; Update stage buffer to show remarks in column 4
+        (pearl-gtd-table-stage-stage-change entry-ref 4 remark-text)))
+    (cons new-headline remarks)))
+
 (defun pearl-gtd-inbox-process-entry (headline buffer entry-ref)
   "Process a single entry according to GTD steps.
 HEADLINE is the entry heading to process.
 BUFFER is the staging buffer.
 ENTRY-REF is the reference to the entry."
-  (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " headline))))
-    (if is-actionable
-        (pearl-gtd-inbox-handle-actionable headline buffer entry-ref)
-      (pearl-gtd-inbox-handle-non-actionable headline buffer entry-ref))))
+  ;; Step 1: Clarify - ask for rename and remarks
+  (let* ((clarify-result (pearl-gtd-inbox-clarify-entry headline buffer entry-ref))
+         (new-headline (car clarify-result))
+         (remarks (cdr clarify-result))
+         (display-headline (or new-headline headline)))
+    ;; Step 2: Process - check if actionable
+    (let ((is-actionable (y-or-n-p (format "Is '%s' actionable? " display-headline))))
+      (if is-actionable
+          (pearl-gtd-inbox-handle-actionable headline buffer entry-ref new-headline remarks)
+        (pearl-gtd-inbox-handle-non-actionable headline buffer entry-ref new-headline remarks)))))
 
-(defun pearl-gtd-inbox-handle-actionable (headline buffer entry-ref)
+(defun pearl-gtd-inbox-handle-actionable (headline buffer entry-ref new-headline remarks)
   "Handle actionable entries.
-HEADLINE is the entry heading to process.
+HEADLINE is the original entry heading.
 BUFFER is the staging buffer.
-ENTRY-REF is the reference to the entry."
-  (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " headline))))
+ENTRY-REF is the reference to the entry.
+NEW-HEADLINE is the clarified headline (nil if unchanged).
+REMARKS is the clarified remarks text (nil if none)."
+  (let ((can-do-in-2min (y-or-n-p (format "Can '%s' be done in 2 minutes? " (or new-headline headline)))))
     (if can-do-in-2min
-        (pearl-gtd-inbox-execute-immediately headline buffer entry-ref)
-      (pearl-gtd-inbox-handle-further-checks headline buffer entry-ref))))
+        (pearl-gtd-inbox-execute-immediately headline buffer entry-ref new-headline remarks)
+      (pearl-gtd-inbox-handle-further-checks headline buffer entry-ref new-headline remarks))))
 
-(defun pearl-gtd-inbox-execute-immediately (headline buffer entry-ref)
+(defun pearl-gtd-inbox-execute-immediately (headline buffer entry-ref new-headline remarks)
   "Execute and stage immediate actions.
-HEADLINE is the entry heading to process.
+HEADLINE is the original entry heading.
 BUFFER is the staging buffer.
-ENTRY-REF is the reference to the entry."
-  (message "Executing '%s' immediately." headline)
+ENTRY-REF is the reference to the entry.
+NEW-HEADLINE is the clarified headline (nil if unchanged).
+REMARKS is the clarified remarks text (nil if none)."
+  (message "Executing '%s' immediately." (or new-headline headline))
   (pearl-gtd-table-stage-mark-executed entry-ref)
-  (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
+  (push (list headline nil nil new-headline remarks) pearl-gtd-inbox--pending-moves))
 
-(defun pearl-gtd-inbox-handle-further-checks (headline buffer entry-ref)
+(defun pearl-gtd-inbox-handle-further-checks (headline buffer entry-ref new-headline remarks)
   "Handle further checks for non-immediate actionable entries.
-HEADLINE is the entry heading to check.
+HEADLINE is the original entry heading.
 BUFFER is the staging buffer.
-ENTRY-REF is the reference to the entry."
-  (let ((tags '()))
+ENTRY-REF is the reference to the entry.
+NEW-HEADLINE is the clarified headline (nil if unchanged).
+REMARKS is the clarified remarks text (nil if none)."
+  (let ((tags '())
+        (display-headline (or new-headline headline)))
     ;; Context: single value
-    (let ((context (read-string (format "Context for '%s' (e.g. @home, RET to skip): " headline))))
+    (let ((context (read-string (format "Context for '%s' (e.g. @home, RET to skip): " display-headline))))
       (when (not (string= context ""))
         (push context tags)))
 
     ;; Schedule: single value
-    (let ((schedule (read-string (format "Schedule for '%s' (e.g. 2026-04-10, RET to skip): " headline))))
+    (let ((schedule (read-string (format "Schedule for '%s' (e.g. 2026-04-10, RET to skip): " display-headline))))
       (when (not (string= schedule ""))
         (push (format ":SCHEDULED:%s:" schedule) tags)))
 
     ;; Delegated: single value
-    (let ((delegatee (read-string (format "Delegate '%s' to (e.g. John, RET to skip): " headline))))
+    (let ((delegatee (read-string (format "Delegate '%s' to (e.g. John, RET to skip): " display-headline))))
       (when (not (string= delegatee ""))
         (push (format ":DELEGATED:%s:" delegatee) tags)))
 
     ;; Project: supports multiple projects (comma separated)
-    (let ((project-input (read-string (format "Project name(s) for '%s' (comma separated, RET to skip): " headline))))
+    (let ((project-input (read-string (format "Project name(s) for '%s' (comma separated, RET to skip): " display-headline))))
       (let ((projects (mapcar #'string-trim (split-string project-input "," t))))
         (when projects
           (push (format ":PROJECT:%s:" (mapconcat 'identity projects ",")) tags))))
@@ -91,25 +128,27 @@ ENTRY-REF is the reference to the entry."
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
         (pearl-gtd-table-stage-stage-change entry-ref 3 props))
-      ;; Store headline, target-file, and properties
-      (push (list headline "actions.org" props) pearl-gtd-inbox--pending-moves))))
+      ;; Store headline, target-file, and properties, plus clarify info
+      (push (list headline "actions.org" props new-headline remarks) pearl-gtd-inbox--pending-moves))))
 
-(defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref)
+(defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref new-headline remarks)
   "Handle non-actionable entries.
-HEADLINE is the entry heading to handle.
+HEADLINE is the original entry heading.
 BUFFER is the staging buffer.
-ENTRY-REF is the reference to the entry."
-  (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " headline))))
+ENTRY-REF is the reference to the entry.
+NEW-HEADLINE is the clarified headline (nil if unchanged).
+REMARKS is the clarified remarks text (nil if none)."
+  (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " (or new-headline headline)))))
     (cond
      ((string= assign-to "reference")
       (pearl-gtd-table-stage-add-annotation entry-ref "-> reference")
-      (push (list headline "reference.org" nil) pearl-gtd-inbox--pending-moves))
+      (push (list headline "reference.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
       (pearl-gtd-table-stage-add-annotation entry-ref "-> someday")
-      (push (list headline "someday.org" nil) pearl-gtd-inbox--pending-moves))
+      (push (list headline "someday.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
       (pearl-gtd-table-stage-mark-deleted entry-ref)
-      (push (list headline nil nil) pearl-gtd-inbox--pending-moves))
+      (push (list headline nil nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      (t (pearl-gtd-table-stage-add-annotation entry-ref "No change")))))
 
 (defun pearl-gtd-inbox-process ()
@@ -137,7 +176,7 @@ ENTRY-REF is the reference to the entry."
                     (setq pearl-gtd-table-stage-current-highlight nil))
                   (pearl-gtd-table-stage-clear-changes staging-buffer)
                   (dolist (move pearl-gtd-inbox--pending-moves)
-                    (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move)))
+                    (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move) (nth 3 move) (nth 4 move)))
                   (when (and (file-exists-p inbox-file)
                              (= 0 (file-attribute-size (file-attributes inbox-file))))
                     (delete-file inbox-file)))
@@ -165,13 +204,15 @@ ENTRY-REF is the reference to the entry."
   "Check if HEADLINE is delegated."
   (string-match-p ":DELEGATED:" headline))
 
-(defun pearl-gtd-inbox-do-move (headline target-file properties-string)
+(defun pearl-gtd-inbox-do-move (headline target-file properties-string new-headline remarks)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
 If TARGET-FILE is nil, just delete from inbox (trash).
 PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyProject:\" and tags like \"@office\".
 HEADLINE is the entry heading to process.
 TARGET-FILE is the destination file.
-PROPERTIES-STRING is the string of properties."
+PROPERTIES-STRING is the string of properties.
+NEW-HEADLINE is the clarified headline (nil if unchanged).
+REMARKS is the clarified remarks text (nil if none)."
   (let ((inbox-path (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
         subtree-content)
     ;; First, add properties and tags to the entry in inbox
@@ -204,6 +245,18 @@ PROPERTIES-STRING is the string of properties."
       (goto-char (point-min))
       (when (re-search-forward (concat "^\\*+ " (regexp-quote headline) "\\($\\| \\)") nil t)
         (beginning-of-line)
+        ;; Apply new headline if provided
+        (when new-headline
+          (let ((start (point)))
+            (skip-chars-forward "^\\n")
+            (let ((end (point)))
+              (delete-region start end)
+              (insert (concat "* " new-headline)))))
+        ;; Apply remarks if provided (add as body text after headline)
+        (when remarks
+          (end-of-line)
+          (insert "\n")
+          (insert remarks))
         (org-mark-subtree)
         (setq subtree-content (buffer-substring (region-beginning) (region-end)))
         (kill-region (region-beginning) (region-end))
