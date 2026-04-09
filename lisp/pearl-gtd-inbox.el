@@ -141,15 +141,15 @@ REMARKS is the clarified remarks text (nil if none)."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " (or new-headline headline)))))
     (cond
      ((string= assign-to "reference")
-      (pearl-gtd-table-stage-add-annotation entry-ref "-> reference")
+      (pearl-gtd-table-stage-stage-change entry-ref 1 (format "[Reference] %s" headline))
       (push (list headline "reference.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
-      (pearl-gtd-table-stage-add-annotation entry-ref "-> someday")
+      (pearl-gtd-table-stage-stage-change entry-ref 1 (format "[Someday] %s" headline))
       (push (list headline "someday.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
       (pearl-gtd-table-stage-mark-deleted entry-ref)
       (push (list headline nil nil new-headline remarks) pearl-gtd-inbox--pending-moves))
-     (t (pearl-gtd-table-stage-add-annotation entry-ref "No change")))))
+     (t nil))))
 
 (defun pearl-gtd-inbox-process ()
   "Process the inbox according to GTD clarify and organize steps, with user interaction via staging buffer."

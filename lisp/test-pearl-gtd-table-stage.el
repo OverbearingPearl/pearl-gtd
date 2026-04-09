@@ -178,26 +178,6 @@
   :teardown (when (buffer-live-p test-buf)
               (kill-buffer test-buf)))
 
-(test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-add-annotation
-    "Test adding annotation to an entry."
-  :setup nil
-  :mock (((symbol-function 'display-buffer) (lambda (&rest _) nil)))
-  :files (("test.org" "* Annotated Task\n"))
-  :buffers ((test-buf " *test-stage*"))
-  :body (let (entry-ref)
-          (setq test-buf (pearl-gtd-table-stage-create (expand-file-name "test.org" temp-dir)))
-          (with-current-buffer test-buf
-            (pearl-gtd-table-stage-map-entries
-             test-buf
-             (lambda (headline ref)
-               (setq entry-ref ref)))
-            (pearl-gtd-table-stage-add-annotation entry-ref "Test Note")))
-  :asserts (with-current-buffer test-buf
-             (goto-char (point-min))
-             (forward-line 2)
-             (should (search-forward " => Test Note" (line-end-position) t)))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-stage-change
     "Test staging a change to a cell."

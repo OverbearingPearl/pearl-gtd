@@ -133,18 +133,6 @@ BUFFER is the buffer containing the staged entries."
           (overlay-put ov 'evaporate t)
           (setq pearl-gtd-table-stage-current-highlight ov))))))
 
-(defun pearl-gtd-table-stage-add-annotation (entry-ref annotation)
-  "Add ANNOTATION to the entry referenced by ENTRY-REF."
-  (let ((buffer (car entry-ref))
-        (row (cdr entry-ref)))
-    (with-current-buffer buffer
-      (let ((inhibit-read-only t))
-        (save-excursion
-          (goto-char (point-min))
-          (forward-line (1- row))
-          (end-of-line)
-          (insert (format " => %s" annotation))
-          (org-table-align))))))
 
 (defun pearl-gtd-table-stage-mark-deleted (entry-ref)
   "Mark the entry referenced by ENTRY-REF as deleted (trash)."
