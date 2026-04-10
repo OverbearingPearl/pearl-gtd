@@ -31,7 +31,13 @@
              (with-temp-buffer
                (insert-file-contents inbox-file)
                (should (search-forward "* Test item" nil t))))
-  :teardown (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: actionable and can be done in 2 minutes
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-immediate
@@ -54,7 +60,16 @@
              (with-current-buffer
                  (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
                (search-forward "* Quick task" nil t)))
-  :teardown (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: actionable with context
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-context
@@ -87,7 +102,16 @@
                  (goto-char (point-min))
                  (forward-line 2)
                  (should (search-forward "@office" (line-end-position) t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: actionable with scheduled date
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-scheduled
@@ -120,7 +144,16 @@
                  (goto-char (point-min))
                  (forward-line 2)
                  (should (search-forward ":SCHEDULED:2026-04-10:" (line-end-position) t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: actionable with delegation
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-delegated
@@ -153,7 +186,16 @@
                  (goto-char (point-min))
                  (forward-line 2)
                  (should (search-forward ":DELEGATED:John:" (line-end-position) t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: actionable as a project
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-project
@@ -186,7 +228,16 @@
                  (goto-char (point-min))
                  (forward-line 2)
                  (should (search-forward ":PROJECT:MyProject:" (line-end-position) t)))))
-  :teardown (kill-buffer (get-buffer pearl-gtd-inbox-stage-buffer-name)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: non-actionable to reference
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-reference
@@ -206,7 +257,16 @@
               (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (should (file-exists-p (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
-  :teardown (delete-file (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "reference.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: non-actionable to someday
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-someday
@@ -226,7 +286,16 @@
               (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (should (file-exists-p (expand-file-name "someday.org" pearl-gtd-init-base-directory)))
-  :teardown (delete-file (expand-file-name "someday.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "someday.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test processing path: non-actionable to trash
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-non-actionable-to-trash
@@ -246,7 +315,13 @@
               (t "")))))
   :body (pearl-gtd-inbox-process)
   :asserts (should-not (file-exists-p (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
-  :teardown (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (delete-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test clarify: rename headline
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-clarify-rename
@@ -271,7 +346,16 @@
                (insert-file-contents ref-file)
                (should (search-forward "* New clarified name" nil t))
                (should-not (search-forward "* Old name" nil t))))
-  :teardown (delete-file (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "reference.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test clarify: add remarks
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-clarify-remarks
@@ -296,7 +380,16 @@
                (insert-file-contents ref-file)
                (should (search-forward "* Task with remarks" nil t))
                (should (search-forward "This is a detailed remark" nil t))))
-  :teardown (delete-file (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "reference.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 ;; Test clarify: both rename and remarks
 (test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-clarify-both
@@ -328,7 +421,16 @@
                (should (search-forward "* Renamed task" nil t))
                (should (search-forward "Additional context here" nil t))
                (should-not (search-forward "* Original" nil t))))
-  :teardown (delete-file (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "reference.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
 
 (provide 'test-pearl-gtd-inbox)
 

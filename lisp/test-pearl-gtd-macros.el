@@ -73,8 +73,17 @@ ARGS is a plist with keys: :setup, :files, :buffers, :mock, :body, :asserts, :te
                      (cl-letf ,mock
                        ,body
                        ,asserts))
-                 ,teardown
-                 ,@buffer-cleanup))))))))
+                 ;; Execute user teardown first while variables are still valid
+                 (ignore-errors ,teardown)
+                 ;; Cleanup buffers
+                 ,@buffer-cleanup
+                 ;; Delete files and directory
+                 (dolist (file (directory-files temp-dir t "\\.org$"))
+                   (when (file-exists-p file)
+                     (delete-file file)))
+                 (when (and (file-directory-p temp-dir)
+                            (equal (directory-files temp-dir nil "^\\([^.]\\|\\.[^.]\\|\\.\\..\\)$" t) nil))
+                   (delete-directory temp-dir))))))))))
 
 (provide 'test-pearl-gtd-macros)
 

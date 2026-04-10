@@ -41,7 +41,10 @@
                (should (search-forward "| Age" nil t))
                (should (search-forward "| Tags" nil t))
                (should (search-forward "| Remarks" nil t))))
-  :teardown nil)
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-stage-buf)
+               (kill-buffer test-stage-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-map-entries
     "Test mapping over entries provides correct headline and entry-ref."
@@ -67,6 +70,8 @@
              (should (numberp (cdr (cdr (nth 0 test-collected-entries))))))
   :teardown (progn
               (setq test-collected-entries nil)
+              (setq pearl-gtd-table-stage-original-file nil)
+              (setq pearl-gtd-table-stage-changes nil)
               (when (buffer-live-p test-buf)
                 (kill-buffer test-buf))))
 
@@ -90,8 +95,10 @@
                                  (eq (overlay-get ov 'face)
                                      'pearl-gtd-table-stage-highlight))
                                overlays))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-highlight-move
     "Test that highlighting moves from one entry to another (only one highlight at a time)."
@@ -123,8 +130,10 @@
                ;; And it should be on the second task's line
                (goto-char (overlay-start (car highlight-overlays)))
                (should (looking-at "| Task Two"))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-mark-deleted
     "Test marking an entry as deleted (trash)."
@@ -149,8 +158,10 @@
                                  (eq (overlay-get ov 'face)
                                      'pearl-gtd-table-stage-deleted))
                                overlays))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-mark-executed
     "Test marking an entry as executed (2min rule)."
@@ -175,8 +186,10 @@
                                  (eq (overlay-get ov 'face)
                                      'pearl-gtd-table-stage-executed))
                                overlays))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-stage-change
@@ -201,8 +214,10 @@
                (goto-char (point-min))
                (forward-line 2)
                (should (search-forward "@context" (line-end-position) t))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-multiple-changes
     "Test staging multiple changes accumulates correctly."
@@ -227,8 +242,10 @@
                              pearl-gtd-table-stage-changes))
              (should (cl-some (lambda (c) (equal (nth 2 c) "@office"))
                              pearl-gtd-table-stage-changes)))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-clear-changes
     "Test clearing staged changes."
@@ -246,8 +263,10 @@
             (pearl-gtd-table-stage-stage-change entry-ref 3 "tag")
             (pearl-gtd-table-stage-clear-changes test-buf)))
   :asserts (should (null pearl-gtd-table-stage-changes))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-reapply-marks
     "Test that marks are reapplied after table alignment (stage-change triggers reapply)."
@@ -274,8 +293,10 @@
                                      'pearl-gtd-table-stage-deleted))
                                overlays))
                (should (search-forward "@context" (line-end-position) t))))
-  :teardown (when (buffer-live-p test-buf)
-              (kill-buffer test-buf)))
+  :teardown (setq pearl-gtd-table-stage-original-file nil)
+             (setq pearl-gtd-table-stage-changes nil)
+             (when (buffer-live-p test-buf)
+               (kill-buffer test-buf)))
 
 (test-pearl-gtd-macros-define-test test-pearl-gtd-table-stage-multi-entry-processing
     "Test processing multiple entries sequentially with different operations."
@@ -325,6 +346,8 @@
                (should (search-forward "@context" (line-end-position) t))))
   :teardown (progn
               (setq test-operations-log nil)
+              (setq pearl-gtd-table-stage-original-file nil)
+              (setq pearl-gtd-table-stage-changes nil)
               (when (buffer-live-p test-buf)
                 (kill-buffer test-buf))))
 
