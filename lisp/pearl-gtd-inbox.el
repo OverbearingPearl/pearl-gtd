@@ -188,7 +188,7 @@ REMARKS is the clarified remarks text (nil if none)."
 (defun pearl-gtd-inbox-do-move (headline target-file properties-string new-headline remarks)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
 If TARGET-FILE is nil, just delete from inbox (trash).
-PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :PROJECT:MyProject:\" and tags like \"@office\".
+PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :DELEGATED:John: :PROJECT:Proj1,Proj2:\" and tags like \"@office\".
 HEADLINE is the entry heading to process.
 TARGET-FILE is the destination file.
 PROPERTIES-STRING is the string of properties.
@@ -207,18 +207,28 @@ REMARKS is the clarified remarks text (nil if none)."
           (let ((components (split-string properties-string " " t)))
             (dolist (comp components)
               (cond
-               ;; Property format: :KEY:VALUE:
+               ;; SCHEDULED is built-in property, use org-schedule, not in PROPERTIES drawer
+               ((string-match "^:SCHEDULED:\\(.+\\):$" comp)
+                (let ((date-str (match-string 1 comp)))
+                  (org-schedule nil date-str)))
+               ;; PROJECT uses multivalued property (supports multiple projects)
+               ((string-match "^:PROJECT:\\(.+\\):$" comp)
+                (let ((projects (match-string 1 comp)))
+                  (dolist (proj (split-string projects "," t))
+                    (org-entry-add-to-multivalued-property
+                     nil "PROJECT" (string-trim proj)))))
+               ;; Other property format: :KEY:VALUE: (excluding SCHEDULED and PROJECT)
                ((string-match "^:\\([^:]+\\):\\(.+\\):$" comp)
                 (let ((prop-name (match-string 1 comp))
                       (prop-value (match-string 2 comp)))
                   (org-set-property prop-name prop-value)))
-               ;; Context tag format: @context
+               ;; Context tag format: @context - remove @ and set as only tag (overwrite old)
                ((string-match "^@\\(.+\\)$" comp)
                 (let ((tag (match-string 1 comp)))
-                  (org-toggle-tag tag 'on)))
-               ;; Simple tag (must not start with : to avoid matching properties)
+                  (org-set-tags-to (list tag))))
+               ;; Simple tag without @ (fallback, also ensure unique)
                ((not (string-match "^:" comp))
-                (org-toggle-tag comp 'on)))))
+                (org-set-tags-to (list comp))))))
           (save-buffer))))
     ;; Then, extract the subtree from inbox (now with properties)
     (with-current-buffer (find-file-noselect inbox-path)
@@ -226,11 +236,9 @@ REMARKS is the clarified remarks text (nil if none)."
       (goto-char (point-min))
       (when (re-search-forward (concat "^\\*+ " (regexp-quote headline) "\\($\\| \\)") nil t)
         (beginning-of-line)
+        ;; Apply headline rename using org-edit-headline to preserve tags
         (when new-headline
-          (let ((start (point))
-                (end (progn (skip-chars-forward "^\\n") (point))))
-            (delete-region start end)
-            (insert (concat "* " new-headline))))
+          (org-edit-headline new-headline))
         ;; Apply remarks if provided (add as body text after properties drawer)
         (when remarks
           (org-end-of-meta-data t)
