@@ -188,7 +188,9 @@ REMARKS is the clarified remarks text (nil if none)."
 (defun pearl-gtd-inbox-do-move (headline target-file properties-string new-headline remarks)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
 If TARGET-FILE is nil, just delete from inbox (trash).
-PROPERTIES-STRING contains properties like \":SCHEDULED:2026-04-10: :DELEGATED:John: :PROJECT:Proj1,Proj2:\" and tags like \"@office\".
+PROPERTIES-STRING contains properties such as \":SCHEDULED:2026-04-10:\",
+\":DELEGATED:John:\", and \":PROJECT:Proj1,Proj2:\",
+as well as tags like \"@office\".
 HEADLINE is the entry heading to process.
 TARGET-FILE is the destination file.
 PROPERTIES-STRING is the string of properties.
