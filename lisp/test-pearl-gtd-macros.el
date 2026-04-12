@@ -21,7 +21,7 @@
 ARGS is a plist with keys:
 :setup - Form to run before test
 :files - List of (filename content) to create
-:mock - List of cl-letf bindings for user input simulation
+:mock - List of `cl-letf` bindings for user input simulation
 :body - The test body form
 :asserts - Assertion forms
 :teardown - Cleanup form"
