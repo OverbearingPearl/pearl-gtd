@@ -18,27 +18,34 @@
 (require 'ert)
 
 (defun test-pearl-gtd-file-contains-p (file pattern)
-  "Assert that FILE contains PATTERN."
+  "Assert that FILE contains PATTERN.
+FILE is the file path to check.
+PATTERN is the string to search for."
   (with-temp-buffer
     (insert-file-contents file)
     (goto-char (point-min))
     (search-forward pattern nil t)))
 
 (defun test-pearl-gtd-file-lacks-p (file pattern)
-  "Assert that FILE does not contain PATTERN."
+  "Assert that FILE does not contain PATTERN.
+FILE is the file path to check.
+PATTERN is the string to search for."
   (with-temp-buffer
     (insert-file-contents file)
     (goto-char (point-min))
     (not (search-forward pattern nil t))))
 
 (defun test-pearl-gtd-inbox-empty-p (base-dir)
-  "Check if inbox is visually empty (missing or zero size)."
+  "Check if inbox is visually empty (missing or zero size).
+BASE-DIR is the base directory to check."
   (let ((inbox (expand-file-name "inbox.org" base-dir)))
     (or (not (file-exists-p inbox))
         (= 0 (file-attribute-size (file-attributes inbox))))))
 
 (defun test-pearl-gtd-task-exists-p (file title)
-  "Check if task TITLE exists in FILE."
+  "Check if task TITLE exists in FILE.
+FILE is the file path to check.
+TITLE is the task title to search for."
   (test-pearl-gtd-file-contains-p file (format "* %s" title)))
 
 (provide 'test-pearl-gtd)
