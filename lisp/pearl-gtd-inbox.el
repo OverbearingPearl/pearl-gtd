@@ -185,26 +185,6 @@ REMARKS is the clarified remarks text (nil if none)."
             (message "Inbox is empty, nothing to process.")))
       (message "Inbox file does not exist."))))
 
-(defun pearl-gtd-inbox-is-actionable (headline)
-  "Check if HEADLINE is actionable."
-  (string-match-p "action" headline))
-
-(defun pearl-gtd-inbox-can-do-in-2min (headline)
-  "Check if HEADLINE can be done in 2 minutes."
-  (< (length headline) 50))
-
-(defun pearl-gtd-inbox-is-contextual (headline)
-  "Check if HEADLINE requires a context."
-  (string-match-p ":CONTEXT:" headline))
-
-(defun pearl-gtd-inbox-is-scheduled (headline)
-  "Check if HEADLINE is scheduled."
-  (org-entry-get nil "SCHEDULED"))
-
-(defun pearl-gtd-inbox-is-delegated (headline)
-  "Check if HEADLINE is delegated."
-  (string-match-p ":DELEGATED:" headline))
-
 (defun pearl-gtd-inbox-do-move (headline target-file properties-string new-headline remarks)
   "Move HEADLINE to TARGET-FILE and delete from inbox.
 If TARGET-FILE is nil, just delete from inbox (trash).
