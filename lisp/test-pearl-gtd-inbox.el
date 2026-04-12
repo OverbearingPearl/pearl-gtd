@@ -526,7 +526,7 @@
           (lambda (&rest args)
             (cond
               ((string-match "2 minutes" (car args)) nil)
-              ((string-match "actionable" (car args)) 
+              ((string-match "actionable" (car args))
                (string-match "Actionable" (car args)))
               (t nil))))
          ((symbol-function 'read-string)

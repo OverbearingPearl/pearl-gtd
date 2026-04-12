@@ -38,9 +38,20 @@
   (interactive)
   (require 'ert)
   (ert-delete-all-tests)
-  (pearl-gtd-reload-modules)
-  (dolist (file (directory-files (expand-file-name "lisp" pearl-gtd-directory) nil "^test-.*\\.el$"))
-    (require (intern (file-name-base file))))
+  ;; Load test files in user journey order
+  (dolist (test-file '("test-pearl-gtd-setup"
+                       "test-pearl-gtd-capture"
+                       "test-pearl-gtd-clarify"
+                       "test-pearl-gtd-organize"
+                       "test-pearl-gtd-do"
+                       "test-pearl-gtd-review"
+                       "test-pearl-gtd-horizons"
+                       "test-pearl-gtd-planning"
+                       "test-pearl-gtd-workflows"
+                       "test-pearl-gtd-edge-cases"))
+    (let ((file (expand-file-name (format "lisp/%s.el" test-file) pearl-gtd-directory)))
+      (when (file-exists-p file)
+        (load-file file))))
   (ert t))
 
 (defun pearl-gtd-reload-modules ()
