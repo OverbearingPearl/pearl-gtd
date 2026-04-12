@@ -44,15 +44,17 @@
     "Test processing path: actionable and can be done in 2 minutes."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Quick task\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest args) t))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
+              (t nil))))
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Original capture
               ((string-match "Quick task" (car args)) "Quick task")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -79,17 +81,14 @@
   :mock (((symbol-function 'y-or-n-p)
           (lambda (&rest args)
             (cond
-              ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
               (t nil))))
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Context
               ((string-match "Context" (car args)) "@office")
               ((string-match "Schedule" (car args)) "")
               ((string-match "Delegate" (car args)) "")
@@ -121,17 +120,14 @@
   :mock (((symbol-function 'y-or-n-p)
           (lambda (&rest args)
             (cond
-              ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
               (t nil))))
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Processing
               ((string-match "Context" (car args)) "")
               ((string-match "Schedule" (car args)) "2026-04-10")
               ((string-match "Delegate" (car args)) "")
@@ -163,17 +159,14 @@
   :mock (((symbol-function 'y-or-n-p)
           (lambda (&rest args)
             (cond
-              ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
               (t nil))))
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Processing
               ((string-match "Context" (car args)) "")
               ((string-match "Schedule" (car args)) "")
               ((string-match "Delegate" (car args)) "John")
@@ -205,17 +198,14 @@
   :mock (((symbol-function 'y-or-n-p)
           (lambda (&rest args)
             (cond
-              ((string-match "actionable" (car args)) t)
               ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
               (t nil))))
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Processing
               ((string-match "Context" (car args)) "")
               ((string-match "Schedule" (car args)) "")
               ((string-match "Delegate" (car args)) "")
@@ -248,11 +238,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Assign to
               ((string-match "Assign" (car args)) "reference")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -277,11 +264,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Assign to
               ((string-match "Assign" (car args)) "someday")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -306,11 +290,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Assign to
               ((string-match "Assign" (car args)) "trash")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -332,11 +313,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename to new name
               ((string-match "Rename" (car args)) "New clarified name")
-              ;; Clarify: remarks (skip)
               ((string-match "Add remarks" (car args)) "")
-              ;; Assign to reference to verify the move
               ((string-match "Assign" (car args)) "reference")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -366,11 +344,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (skip)
               ((string-match "Rename" (car args)) "")
-              ;; Clarify: add remarks
               ((string-match "Add remarks" (car args)) "This is a detailed remark")
-              ;; Assign to reference to verify
               ((string-match "Assign" (car args)) "reference")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -396,7 +371,6 @@
     "Test clarify step with both rename and remarks."
   :setup (progn
            (pearl-gtd-init-initialize)
-           ;; Ensure reference.org is initialized with just the header
            (let ((ref-file (expand-file-name "reference.org" pearl-gtd-init-base-directory)))
              (with-temp-file ref-file
                (insert ";; reference.org\n"))))
@@ -405,11 +379,8 @@
          ((symbol-function 'read-string)
           (lambda (&rest args)
             (cond
-              ;; Clarify: rename (anchor to beginning to avoid matching "Renamed")
               ((string-match "^Rename" (car args)) "Renamed task")
-              ;; Clarify: add remarks (note: prompt shows new name)
               ((string-match "^Add remarks" (car args)) "Additional context here")
-              ;; Assign to reference
               ((string-match "^Assign" (car args)) "reference")
               (t "")))))
   :body (pearl-gtd-inbox-process)
@@ -426,6 +397,109 @@
                          (get-buffer pearl-gtd-inbox-stage-buffer-name))
                 (kill-buffer pearl-gtd-inbox-stage-buffer-name))
               (dolist (file '("inbox.org" "reference.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
+
+;; New test for actionable with properties and remarks
+(test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-actionable-with-properties-and-remarks
+    "Test processing actionable entry with properties and remarks, verifying properties drawer order."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Actionable task with properties\n"))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Rename" (car args)) "")
+              ((string-match "Add remarks" (car args)) "This is a detailed remark")
+              ((string-match "Context" (car args)) "")
+              ((string-match "Schedule" (car args)) "2026-04-10")
+              ((string-match "Delegate" (car args)) "")
+              ((string-match "Project" (car args)) "MyProject")
+              (t "")))))
+  :body (pearl-gtd-inbox-process)
+  :asserts (let ((actions-file (expand-file-name "actions.org" pearl-gtd-init-base-directory)))
+             (should (file-exists-p actions-file))
+             (with-temp-buffer
+               (insert-file-contents actions-file)
+               (should (search-forward "* Actionable task with properties" nil t))
+               (goto-char (point-min))
+               (let ((props-start (save-excursion
+                                    (when (re-search-forward "^:PROPERTIES:" nil t)
+                                      (match-beginning 0))))
+                     (remarks-start (save-excursion
+                                      (when (re-search-forward "This is a detailed remark" nil t)
+                                        (match-beginning 0)))))
+                 (should props-start)
+                 (should remarks-start)
+                 (should (< props-start remarks-start)))))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
+                (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
+                  (when (file-exists-p path)
+                    (delete-file path))))
+              (setq pearl-gtd-inbox--pending-moves nil)
+              (setq pearl-gtd-inbox-stage-buffer-name nil)))
+
+;; New test for processing multiple entries with remarks
+(test-pearl-gtd-macros-define-test test-pearl-gtd-inbox-process-multiple-entries-with-remarks
+    "Test processing multiple entries, ensuring headlines remain intact after adding remarks."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* First task\n* Second task\n"))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (&rest args)
+            (cond
+              ((string-match "2 minutes" (car args)) nil)
+              ((string-match "actionable" (car args)) t)
+              (t nil))))
+         ((symbol-function 'read-string)
+          (lambda (&rest args)
+            (cond
+              ((string-match "Rename" (car args)) "")
+              ((string-match "Add remarks.*First task" (car args)) "Remarks for first task")
+              ((string-match "Add remarks.*Second task" (car args)) "Remarks for second task")
+              ((string-match "Context" (car args)) "")
+              ((string-match "Schedule" (car args)) "")
+              ((string-match "Delegate" (car args)) "")
+              ((string-match "Project" (car args)) "")
+              (t "")))))
+  :body (pearl-gtd-inbox-process)
+  :asserts (let ((actions-file (expand-file-name "actions.org" pearl-gtd-init-base-directory)))
+             (should (file-exists-p actions-file))
+             (with-temp-buffer
+               (insert-file-contents actions-file)
+               ;; Check first task headline and remarks
+               (should (search-forward "* First task" nil t))
+               (should (search-forward "Remarks for first task" nil t))
+               ;; Ensure no pollution
+               (goto-char (point-min))
+               (should (search-forward "* First task" nil t))
+               ;; Check second task
+               (should (search-forward "* Second task" nil t))
+               (should (search-forward "Remarks for second task" nil t))
+               ;; Verify order: First task before Second task
+               (let ((first-pos (save-excursion
+                                  (goto-char (point-min))
+                                  (search-forward "* First task" nil t)
+                                  (point))))
+                 (goto-char (point-min))
+                 (search-forward "* Second task" nil t)
+                 (should (> (point) first-pos)))))
+  :teardown (progn
+              (when (and pearl-gtd-inbox-stage-buffer-name
+                         (get-buffer pearl-gtd-inbox-stage-buffer-name))
+                (kill-buffer pearl-gtd-inbox-stage-buffer-name))
+              (dolist (file '("inbox.org" "actions.org"))
                 (let ((path (expand-file-name file pearl-gtd-init-base-directory)))
                   (when (file-exists-p path)
                     (delete-file path))))
