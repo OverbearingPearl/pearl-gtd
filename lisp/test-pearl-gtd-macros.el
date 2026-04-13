@@ -49,12 +49,17 @@ ARGS is a plist with keys:
                (cl-letf ,mock
                  ,body
                  ,asserts))
-           ;; Teardown
            (ignore-errors ,teardown)
-           ;; Cleanup files
+           ;; First delete buffers
+           (dolist (buf (buffer-list))
+             (when (and (buffer-file-name buf)
+                        (string-prefix-p temp-dir (buffer-file-name buf)))
+               (kill-buffer buf)))
+           ;; Then delete files
            (dolist (file (directory-files temp-dir t "\\.org$"))
              (when (file-exists-p file)
                (delete-file file)))
+           ;; Finally delete directory
            (delete-directory temp-dir))))))
 
 (provide 'test-pearl-gtd-macros)
