@@ -16,7 +16,7 @@
 
 (require 'ert)
 (require 'pearl-gtd)
-(require 'test-pearl-gtd-macros)
+(require 'test-pearl-gtd)
 
 (test-pearl-gtd-macros-define-story
     test-pearl-gtd-clarify-user-renames-unclear-task

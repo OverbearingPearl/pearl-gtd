@@ -16,6 +16,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 
 (defun test-pearl-gtd-file-contains-p (file pattern)
   "Assert that FILE contains PATTERN.
@@ -47,6 +48,52 @@ BASE-DIR is the base directory to check."
 FILE is the file path to check.
 TITLE is the task title to search for."
   (test-pearl-gtd-file-contains-p file (format "* %s" title)))
+
+(defmacro test-pearl-gtd-macros-define-story (name docstring &rest args)
+  "Define a user story test named NAME with DOCSTRING.
+ARGS is a plist with keys:
+:setup - Form to run before test
+:files - List of (filename content) to create
+:mock - List of `cl-letf` bindings for user input simulation
+:body - The test body form
+:asserts - Assertion forms
+:teardown - Cleanup form"
+  (declare (indent defun))
+  (let ((setup (plist-get args :setup))
+        (files (plist-get args :files))
+        (mock (plist-get args :mock))
+        (body (plist-get args :body))
+        (asserts (plist-get args :asserts))
+        (teardown (plist-get args :teardown)))
+    `(ert-deftest ,name ()
+       ,docstring
+       (let* ((temp-dir (make-temp-file "test-pearl-gtd-" t))
+              (pearl-gtd-init-base-directory temp-dir))
+         (unwind-protect
+             (progn
+               ,setup
+               ;; Create test files
+               (dolist (file-spec ',files)
+                 (let ((file (car file-spec))
+                       (content (cadr file-spec)))
+                   (with-temp-file (expand-file-name file temp-dir)
+                     (insert content))))
+               ;; Run test with mocks
+               (cl-letf ,mock
+                 ,body
+                 ,asserts))
+           (ignore-errors ,teardown)
+           ;; First delete buffers
+           (dolist (buf (buffer-list))
+             (when (and (buffer-file-name buf)
+                        (string-prefix-p temp-dir (buffer-file-name buf)))
+               (kill-buffer buf)))
+           ;; Then delete files
+           (dolist (file (directory-files temp-dir t "\\.org$"))
+             (when (file-exists-p file)
+               (delete-file file)))
+           ;; Finally delete directory
+           (delete-directory temp-dir))))))
 
 (provide 'test-pearl-gtd)
 
