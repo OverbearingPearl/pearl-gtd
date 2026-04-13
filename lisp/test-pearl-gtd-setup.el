@@ -18,7 +18,7 @@
 (require 'pearl-gtd-init)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-setup-user-initializes-gtd-system-for-first-time
     "User runs M-x pearl-gtd-init-initialize for the first time."
   :setup nil
@@ -33,7 +33,7 @@
              (should (file-exists-p (expand-file-name "actions.org" pearl-gtd-init-base-directory))))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-setup-user-reinitializes-without-losing-data
     "User reinitializes system, existing files are preserved."
   :setup (progn
@@ -49,7 +49,7 @@
                       "* Existing task")))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-setup-user-initializes-with-existing-files
     "User initializes system with existing files."
   :setup nil

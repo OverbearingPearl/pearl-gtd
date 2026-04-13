@@ -18,7 +18,7 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-capture-user-captures-simple-idea-to-inbox
     "User runs M-x pearl-gtd-capture and inputs 'Buy milk'."
   :setup (pearl-gtd-init-initialize)
@@ -30,7 +30,7 @@
                     "* Buy milk"))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-capture-user-captures-idea-with-timestamp
     "Captured items automatically get CREATED timestamp."
   :setup (pearl-gtd-init-initialize)
@@ -42,7 +42,7 @@
                     ":CREATED:"))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-capture-user-captures-empty-string
     "User attempts to capture an empty string."
   :setup (pearl-gtd-init-initialize)
@@ -54,7 +54,7 @@
                         "* "))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-capture-user-captures-special-chars
     "User captures task with special characters."
   :setup (pearl-gtd-init-initialize)
@@ -66,7 +66,7 @@
                     "* Fix [urgent] bug"))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-capture-user-captures-very-long-title
     "User captures a very long title."
   :setup (pearl-gtd-init-initialize)

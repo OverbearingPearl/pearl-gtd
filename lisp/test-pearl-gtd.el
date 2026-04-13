@@ -49,7 +49,7 @@ FILE is the file path to check.
 TITLE is the task title to search for."
   (test-pearl-gtd-file-contains-p file (format "* %s" title)))
 
-(defmacro test-pearl-gtd-macros-define-story (name docstring &rest args)
+(defmacro test-pearl-gtd-define-story (name docstring &rest args)
   "Define a user story test named NAME with DOCSTRING.
 ARGS is a plist with keys:
 :setup - Form to run before test

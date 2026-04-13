@@ -18,7 +18,7 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-clarify-user-renames-unclear-task
     "User renames 'Stuff' to 'Buy birthday gift for mom' during processing."
   :setup (pearl-gtd-init-initialize)
@@ -41,7 +41,7 @@
                       "* Stuff")))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-clarify-user-adds-notes-to-task
     "User adds 'Check Amazon first' as notes to a task."
   :setup (pearl-gtd-init-initialize)
@@ -60,7 +60,7 @@
             "Check Amazon first")
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-clarify-user-skips-all-clarifications
     "User skips all clarifications during processing."
   :setup (pearl-gtd-init-initialize)
@@ -79,7 +79,7 @@
                     "* Simple task"))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-clarify-user-cancels-midway
     "User cancels midway during clarification."
   :setup (pearl-gtd-init-initialize)

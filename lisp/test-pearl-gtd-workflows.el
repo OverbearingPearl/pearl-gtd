@@ -18,7 +18,7 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-workflows-user-processes-full-gtd-pipeline
     "User captures, clarifies, organizes, and completes processing."
   :setup (pearl-gtd-init-initialize)
@@ -56,7 +56,7 @@
                       ":errands:")))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-workflows-user-interrupts-processing
     "User interrupts processing midway."
   :setup (pearl-gtd-init-initialize)
@@ -71,7 +71,7 @@
                     "* Task to interrupt"))
   :teardown nil)
 
-(test-pearl-gtd-macros-define-story
+(test-pearl-gtd-define-story
     test-pearl-gtd-workflows-user-processes-mixed-destinations
     "User processes entries with mixed destinations."
   :setup (pearl-gtd-init-initialize)
