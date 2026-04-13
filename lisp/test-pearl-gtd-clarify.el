@@ -84,8 +84,9 @@
     "User cancels midway during clarification."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task to cancel\n"))
-  :mock nil  ; Assuming cancellation logic
-  :body (signal 'quit nil)  ; Simulate cancellation
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))  ; Simulate yes to abort
+         ((symbol-function 'read-string) (lambda (&rest _) "")))  ; Mock to skip renaming
+  :body (pearl-gtd-process-inbox)  ; Call the function with mock
   :asserts (should (test-pearl-gtd-file-contains-p
                     (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
                     "* Task to cancel"))

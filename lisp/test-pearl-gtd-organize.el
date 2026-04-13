@@ -124,7 +124,7 @@
     "User processes an empty inbox."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" ""))
-  :mock nil
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
   :body (pearl-gtd-process-inbox)
   :asserts (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
   :teardown nil)
