@@ -18,9 +18,8 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-clarify-user-renames-unclear-task
-    "User renames 'Stuff' to 'Buy birthday gift for mom' during processing."
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-renames-unclear-task
+  "User renames 'Stuff' to 'Buy birthday gift for mom' during processing."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Stuff\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
@@ -41,9 +40,8 @@
                       "* Stuff")))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-clarify-user-adds-notes-to-task
-    "User adds 'Check Amazon first' as notes to a task."
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-adds-notes-to-task
+  "User adds 'Check Amazon first' as notes to a task."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Research laptop\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
@@ -60,9 +58,8 @@
             "Check Amazon first")
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-clarify-user-skips-all-clarifications
-    "User skips all clarifications during processing."
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-skips-all-clarifications
+  "User skips all clarifications during processing."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Simple task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
@@ -79,9 +76,8 @@
                     "* Simple task"))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-clarify-user-cancels-midway
-    "User cancels midway during clarification."
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-cancels-midway
+  "User cancels midway during clarification."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task to cancel\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))  ; Simulate yes to abort

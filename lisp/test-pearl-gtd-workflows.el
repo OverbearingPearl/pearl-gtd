@@ -18,9 +18,8 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-workflows-user-processes-full-gtd-pipeline
-    "User captures, clarifies, organizes, and completes processing."
+(test-pearl-gtd-define-story test-pearl-gtd-workflows-user-processes-full-gtd-pipeline
+  "User captures, clarifies, organizes, and completes processing."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string)
@@ -56,9 +55,8 @@
                       ":errands:")))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-workflows-user-interrupts-processing
-    "User interrupts processing midway."
+(test-pearl-gtd-define-story test-pearl-gtd-workflows-user-interrupts-processing
+  "User interrupts processing midway."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task to interrupt\n"))
   :mock (((symbol-function 'read-string) (lambda (&rest _) ""))  ; Mock to skip renaming
@@ -71,9 +69,8 @@
                     "* Task to interrupt"))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-workflows-user-processes-mixed-destinations
-    "User processes entries with mixed destinations."
+(test-pearl-gtd-define-story test-pearl-gtd-workflows-user-processes-mixed-destinations
+  "User processes entries with mixed destinations."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Action task\n* Reference task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))

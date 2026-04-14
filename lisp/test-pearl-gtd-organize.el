@@ -18,9 +18,8 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-trashes-junk-item
-    "User decides item is trash, it disappears completely."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-trashes-junk-item
+  "User decides item is trash, it disappears completely."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Junk item\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
@@ -35,9 +34,8 @@
   :asserts (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-files-item-to-reference
-    "User moves 'Article about Emacs' to reference.org."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-files-item-to-reference
+  "User moves 'Article about Emacs' to reference.org."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Article about Emacs\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
@@ -54,9 +52,8 @@
             "* Article about Emacs")
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-sets-context-at-office
-    "User tags task with @office context."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-sets-context-at-office
+  "User tags task with @office context."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task for office\n"))
   :mock (((symbol-function 'y-or-n-p)
@@ -81,9 +78,8 @@
             ":office:")
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-renames-then-sets-context-and-schedule
-    "User renames task and sets @office context with schedule."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-renames-then-sets-context-and-schedule
+  "User renames task and sets @office context with schedule."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Old vague name\n"))
   :mock (((symbol-function 'y-or-n-p)
@@ -119,9 +115,8 @@
              (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory)))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-processes-empty-inbox
-    "User processes an empty inbox."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-processes-empty-inbox
+  "User processes an empty inbox."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" ""))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
@@ -129,9 +124,8 @@
   :asserts (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-organize-user-handles-duplicate-titles
-    "User processes entries with duplicate titles."
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-handles-duplicate-titles
+  "User processes entries with duplicate titles."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Duplicate task\n* Duplicate task\n"))
   :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))

@@ -18,9 +18,8 @@
 (require 'pearl-gtd)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-capture-user-captures-simple-idea-to-inbox
-    "User runs M-x pearl-gtd-capture and inputs 'Buy milk'."
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-captures-simple-idea-to-inbox
+  "User runs M-x pearl-gtd-capture and inputs 'Buy milk'."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string) (lambda (&rest _) "Buy milk")))
@@ -30,9 +29,8 @@
                     "* Buy milk"))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-capture-user-captures-idea-with-timestamp
-    "Captured items automatically get CREATED timestamp."
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-captures-idea-with-timestamp
+  "Captured items automatically get CREATED timestamp."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string) (lambda (&rest _) "Task with time")))
@@ -42,9 +40,8 @@
                     ":CREATED:"))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-capture-user-captures-empty-string
-    "User attempts to capture an empty string."
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-captures-empty-string
+  "User attempts to capture an empty string."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string) (lambda (&rest _) "")))
@@ -54,9 +51,8 @@
                         "* "))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-capture-user-captures-special-chars
-    "User captures task with special characters."
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-captures-special-chars
+  "User captures task with special characters."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string) (lambda (&rest _) "Fix [urgent] bug")))
@@ -66,9 +62,8 @@
                     "* Fix [urgent] bug"))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-capture-user-captures-very-long-title
-    "User captures a very long title."
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-captures-very-long-title
+  "User captures a very long title."
   :setup (pearl-gtd-init-initialize)
   :files nil
   :mock (((symbol-function 'read-string) (lambda (&rest _) "This is a very long title that exceeds normal length for testing purposes")))

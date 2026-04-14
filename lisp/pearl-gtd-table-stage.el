@@ -77,14 +77,14 @@ Optional BUFFER-NAME specifies the buffer name; if nil, a default name is used."
       (dolist (entry (nreverse headlines))
         (let* ((created-str (nth 3 entry))
                (age-str (if created-str
-                          (let* ((created-time (date-to-time created-str))
-                                 (diff (time-subtract (current-time) created-time))
-                                 (total-seconds (floor (float-time diff)))
-                                 (days (/ total-seconds 86400))
-                                 (hours (/ (% total-seconds 86400) 3600))
-                                 (minutes (/ (% total-seconds 3600) 60)))
-                            (format "%dd %dh %dm" days hours minutes))
-                        "N/A")))
+                            (let* ((created-time (date-to-time created-str))
+                                   (diff (time-subtract (current-time) created-time))
+                                   (total-seconds (floor (float-time diff)))
+                                   (days (/ total-seconds 86400))
+                                   (hours (/ (% total-seconds 86400) 3600))
+                                   (minutes (/ (% total-seconds 3600) 60)))
+                              (format "%dd %dh %dm" days hours minutes))
+                          "N/A")))
           (insert (format "| %s | %s | %s | |\n"
                           (nth 0 entry)
                           age-str

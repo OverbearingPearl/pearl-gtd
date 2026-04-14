@@ -18,9 +18,8 @@
 (require 'pearl-gtd-init)
 (require 'test-pearl-gtd)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-setup-user-initializes-gtd-system-for-first-time
-    "User runs M-x pearl-gtd-init-initialize for the first time."
+(test-pearl-gtd-define-story test-pearl-gtd-setup-user-initializes-gtd-system-for-first-time
+  "User runs M-x pearl-gtd-init-initialize for the first time."
   :setup nil
   :files nil
   :mock nil
@@ -33,9 +32,8 @@
              (should (file-exists-p (expand-file-name "actions.org" pearl-gtd-init-base-directory))))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-setup-user-reinitializes-without-losing-data
-    "User reinitializes system, existing files are preserved."
+(test-pearl-gtd-define-story test-pearl-gtd-setup-user-reinitializes-without-losing-data
+  "User reinitializes system, existing files are preserved."
   :setup (progn
            (pearl-gtd-init-initialize)
            (with-temp-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
@@ -49,9 +47,8 @@
                       "* Existing task")))
   :teardown nil)
 
-(test-pearl-gtd-define-story
-    test-pearl-gtd-setup-user-initializes-with-existing-files
-    "User initializes system with existing files."
+(test-pearl-gtd-define-story test-pearl-gtd-setup-user-initializes-with-existing-files
+  "User initializes system with existing files."
   :setup nil
   :files (("inbox.org" "* Existing task\n"))
   :mock nil
