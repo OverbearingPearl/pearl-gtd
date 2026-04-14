@@ -329,6 +329,7 @@ REMARKS is the clarified remarks text (nil if none)."
           (if (> file-size 0)
               (let ((staging-buffer (pearl-gtd-inbox--create-staging-buffer inbox-file " *inbox-processing*")))
                 (setq pearl-gtd-inbox-stage-buffer-name (buffer-name staging-buffer))
+                (pop-to-buffer staging-buffer)
                 (with-current-buffer staging-buffer
                   (org-mode)
                   (pearl-gtd-inbox--map-entries
