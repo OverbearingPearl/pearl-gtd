@@ -54,7 +54,7 @@ Returns a cons cell (NEW-HEADLINE . REMARKS)."
       (when (not (string= remark-text ""))
         (setq remarks remark-text)
         ;; Update stage buffer to show remarks in column 4
-        (pearl-gtd-table-stage-stage-change entry-ref 4 remark-text)))
+        (pearl-gtd-table-stage-stage-change entry-ref 2 remark-text)))
     (cons new-headline remarks)))
 
 (defun pearl-gtd-inbox-process-entry (headline buffer entry-ref)
@@ -128,9 +128,9 @@ REMARKS is the clarified remarks text (nil if none)."
 
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
-        (pearl-gtd-table-stage-stage-change entry-ref 3 props))
+        (pearl-gtd-table-stage-stage-change entry-ref 4 props))
       ;; Store headline, target-file, and properties, plus clarify info
-      (push (list headline "actions.org" props new-headline remarks) pearl-gtd-inbox--pending-moves))))
+      (push (list headline "actions.org" props new-headline remarks)))))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref new-headline remarks)
   "Handle non-actionable entries.
