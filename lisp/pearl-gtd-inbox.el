@@ -29,11 +29,12 @@ Remarks is the clarified remarks text (nil if none).")
 
 (defun pearl-gtd-inbox-capture ()
   "Capture a new item to the inbox with a timestamp."
-  (let ((item (read-string "Enter item to capture: ")))
-    (with-current-buffer (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
-      (goto-char (point-max))
-      (insert (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n" item (format-time-string "%Y-%m-%d %H:%M:%S")))
-      (save-buffer))))
+  (let ((item (string-trim (read-string "Enter item to capture: "))))
+    (unless (string-empty-p item)
+      (with-current-buffer (find-file-noselect (expand-file-name "inbox.org" pearl-gtd-init-base-directory))
+        (goto-char (point-max))
+        (insert (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n" item (format-time-string "%Y-%m-%d %H:%M:%S")))
+        (save-buffer)))))
 
 (defun pearl-gtd-inbox-clarify-entry (headline buffer entry-ref)
   "Clarify the entry by asking user to rename or add remarks.
