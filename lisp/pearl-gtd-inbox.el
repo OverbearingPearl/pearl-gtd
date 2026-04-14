@@ -14,8 +14,173 @@
 
 ;;; Code:
 
-(require 'pearl-gtd-table-stage)
+(require 'cl-lib)
 (require 'org)
+
+(defface pearl-gtd-inbox--highlight
+  '((t :inherit highlight))
+  "Face for highlighting the current entry."
+  :group 'pearl-gtd)
+
+(defface pearl-gtd-inbox--deleted
+  '((t :inherit shadow :strike-through t))
+  "Face for deleted (trash) entries."
+  :group 'pearl-gtd)
+
+(defface pearl-gtd-inbox--executed
+  '((t :inherit success :strike-through t))
+  "Face for executed (2-minute rule) entries."
+  :group 'pearl-gtd)
+
+(defvar pearl-gtd-inbox--staging-original-file nil)
+(defvar pearl-gtd-inbox--staging-changes nil)
+(defvar-local pearl-gtd-inbox--current-highlight nil)
+(defvar-local pearl-gtd-inbox--marked-deleted-rows '())
+(defvar-local pearl-gtd-inbox--marked-executed-rows '())
+
+(defun pearl-gtd-inbox--create-staging-buffer (file-path &optional buffer-name)
+  (setq pearl-gtd-inbox--staging-original-file file-path
+        pearl-gtd-inbox--staging-changes nil
+        pearl-gtd-inbox--marked-deleted-rows '()
+        pearl-gtd-inbox--marked-executed-rows '())
+  (let ((actual-buffer-name (or buffer-name (generate-new-buffer-name " *pearl-gtd-inbox-staging*")))
+        (headlines '()))
+    (with-current-buffer (get-buffer-create actual-buffer-name)
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert-file-contents file-path)
+      (org-mode)
+      (org-map-entries
+       (lambda ()
+         (push (list (org-get-heading t t)
+                     (org-get-tags-at)
+                     (org-get-todo-state)
+                     (org-entry-get nil "CREATED"))
+               headlines)))
+      (erase-buffer)
+      (insert "| Headline | Remarks | Age | Tags |\n")
+      (insert "|----------+---------+-----+------|\n")
+      (dolist (entry (nreverse headlines))
+        (let* ((created-str (nth 3 entry))
+               (age-str (if created-str
+                            (let* ((created-time (date-to-time created-str))
+                                   (diff (time-subtract (current-time) created-time))
+                                   (total-seconds (floor (float-time diff)))
+                                   (days (/ total-seconds 86400))
+                                   (hours (/ (% total-seconds 86400) 3600))
+                                   (minutes (/ (% total-seconds 3600) 60)))
+                              (format "%dd %dh %dm" days hours minutes))
+                          "N/A")))
+          (insert (format "| %s | | %s | %s |\n"
+                          (nth 0 entry) age-str
+                          (mapconcat #'identity (nth 1 entry) ",")))))
+      (org-table-align)
+      (setq buffer-read-only t)
+      (current-buffer))))
+
+(defun pearl-gtd-inbox--map-entries (buffer func)
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-min))
+      (forward-line 2)
+      (let ((entries '()))
+        (while (not (eobp))
+          (let ((current-row (line-number-at-pos)))
+            (when (looking-at "|")
+              (let ((headline (string-trim (org-table-get-field 1))))
+                (when (and headline (not (string= headline "")))
+                  (push (cons headline (cons buffer current-row)) entries)))))
+          (forward-line 1))
+        (dolist (entry (nreverse entries))
+          (funcall func (car entry) (cdr entry)))))))
+
+(defun pearl-gtd-inbox--highlight-entry (entry-ref)
+  (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (save-excursion
+        (when pearl-gtd-inbox--current-highlight
+          (delete-overlay pearl-gtd-inbox--current-highlight))
+        (goto-char (point-min))
+        (forward-line (1- row))
+        (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+          (overlay-put ov 'face 'pearl-gtd-inbox--highlight)
+          (overlay-put ov 'evaporate t)
+          (setq pearl-gtd-inbox--current-highlight ov))))))
+
+(defun pearl-gtd-inbox--mark-deleted (entry-ref)
+  (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column 1)
+          (let* ((start (point))
+                 (end (progn (skip-chars-forward "^|") (point)))
+                 (ov (make-overlay start end)))
+            (overlay-put ov 'face 'pearl-gtd-inbox--deleted)
+            (overlay-put ov 'evaporate t)))
+        (cl-pushnew row pearl-gtd-inbox--marked-deleted-rows)))))
+
+(defun pearl-gtd-inbox--mark-executed (entry-ref)
+  (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column 1)
+          (let* ((start (point))
+                 (end (progn (skip-chars-forward "^|") (point)))
+                 (ov (make-overlay start end)))
+            (overlay-put ov 'face 'pearl-gtd-inbox--executed)
+            (overlay-put ov 'evaporate t)))
+        (cl-pushnew row pearl-gtd-inbox--marked-executed-rows)))))
+
+(defun pearl-gtd-inbox--stage-change (entry-ref col new-value)
+  (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
+    (with-current-buffer buffer
+      (push (list row col new-value) pearl-gtd-inbox--staging-changes)
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (forward-line (1- row))
+          (org-table-goto-column col)
+          (org-table-blank-field)
+          (insert new-value)
+          (org-table-align)
+          (pearl-gtd-inbox--reapply-marks buffer))))))
+
+(defun pearl-gtd-inbox--clear-changes (buffer)
+  (with-current-buffer buffer
+    (setq pearl-gtd-inbox--staging-changes nil)))
+
+(defun pearl-gtd-inbox--reapply-marks (buffer)
+  (with-current-buffer buffer
+    (dolist (row pearl-gtd-inbox--marked-deleted-rows)
+      (condition-case nil
+          (progn
+            (goto-char (point-min))
+            (forward-line (1- row))
+            (org-table-goto-column 1)
+            (let* ((start (point))
+                   (end (progn (skip-chars-forward "^|") (point)))
+                   (ov (make-overlay start end)))
+              (overlay-put ov 'face 'pearl-gtd-inbox--deleted)
+              (overlay-put ov 'evaporate t)))
+        (error nil)))
+    (dolist (row pearl-gtd-inbox--marked-executed-rows)
+      (condition-case nil
+          (progn
+            (goto-char (point-min))
+            (forward-line (1- row))
+            (org-table-goto-column 1)
+            (let* ((start (point))
+                   (end (progn (skip-chars-forward "^|") (point)))
+                   (ov (make-overlay start end)))
+              (overlay-put ov 'face 'pearl-gtd-inbox--executed)
+              (overlay-put ov 'evaporate t)))
+        (error nil)))))
 
 (defvar pearl-gtd-inbox--pending-moves nil
   "List of (list original-headline target-file properties-string new-headline remarks) pending to be moved after staging.
@@ -48,13 +213,13 @@ Returns a cons cell (NEW-HEADLINE . REMARKS)."
     (let ((rename (read-string (format "Rename '%s'? (RET to keep, or type new name): " headline))))
       (when (not (string= rename ""))
         (setq new-headline rename)
-        (pearl-gtd-table-stage-stage-change entry-ref 1 rename)))
+        (pearl-gtd-inbox--stage-change entry-ref 1 rename)))
     ;; Ask for remarks
     (let ((remark-text (read-string (format "Add remarks for '%s'? (RET to skip, or type remarks): " (or new-headline headline)))))
       (when (not (string= remark-text ""))
         (setq remarks remark-text)
         ;; Update stage buffer to show remarks in column 4
-        (pearl-gtd-table-stage-stage-change entry-ref 2 remark-text)))
+        (pearl-gtd-inbox--stage-change entry-ref 2 remark-text)))
     (cons new-headline remarks)))
 
 (defun pearl-gtd-inbox-process-entry (headline buffer entry-ref)
@@ -93,7 +258,7 @@ ENTRY-REF is the reference to the entry.
 NEW-HEADLINE is the clarified headline (nil if unchanged).
 REMARKS is the clarified remarks text (nil if none)."
   (message "Executing '%s' immediately." (or new-headline headline))
-  (pearl-gtd-table-stage-mark-executed entry-ref)
+  (pearl-gtd-inbox--mark-executed entry-ref)
   (push (list headline nil nil new-headline remarks) pearl-gtd-inbox--pending-moves))
 
 (defun pearl-gtd-inbox-handle-further-checks (headline buffer entry-ref new-headline remarks)
@@ -128,9 +293,9 @@ REMARKS is the clarified remarks text (nil if none)."
 
     (let ((props (when tags (mapconcat 'identity (nreverse tags) " "))))
       (when props
-        (pearl-gtd-table-stage-stage-change entry-ref 4 props))
+        (pearl-gtd-inbox--stage-change entry-ref 4 props))
       ;; Store headline, target-file, and properties, plus clarify info
-      (push (list headline "actions.org" props new-headline remarks)))))
+      (push (list headline "actions.org" props new-headline remarks) pearl-gtd-inbox--pending-moves))))
 
 (defun pearl-gtd-inbox-handle-non-actionable (headline buffer entry-ref new-headline remarks)
   "Handle non-actionable entries.
@@ -142,13 +307,13 @@ REMARKS is the clarified remarks text (nil if none)."
   (let ((assign-to (read-string (format "Assign '%s' to (reference, someday, trash): " (or new-headline headline)))))
     (cond
      ((string= assign-to "reference")
-      (pearl-gtd-table-stage-stage-change entry-ref 1 (format "[Reference] %s" (or new-headline headline)))
+      (pearl-gtd-inbox--stage-change entry-ref 1 (format "[Reference] %s" (or new-headline headline)))
       (push (list headline "reference.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "someday")
-      (pearl-gtd-table-stage-stage-change entry-ref 1 (format "[Someday] %s" (or new-headline headline)))
+      (pearl-gtd-inbox--stage-change entry-ref 1 (format "[Someday] %s" (or new-headline headline)))
       (push (list headline "someday.org" nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      ((string= assign-to "trash")
-      (pearl-gtd-table-stage-mark-deleted entry-ref)
+      (pearl-gtd-inbox--mark-deleted entry-ref)
       (push (list headline nil nil new-headline remarks) pearl-gtd-inbox--pending-moves))
      (t nil))))
 
@@ -162,20 +327,20 @@ REMARKS is the clarified remarks text (nil if none)."
         (let* ((attrs (file-attributes inbox-file))
                (file-size (file-attribute-size attrs)))
           (if (> file-size 0)
-              (let ((staging-buffer (pearl-gtd-table-stage-create inbox-file " *inbox-processing*")))
+              (let ((staging-buffer (pearl-gtd-inbox--create-staging-buffer inbox-file " *inbox-processing*")))
                 (setq pearl-gtd-inbox-stage-buffer-name (buffer-name staging-buffer))
                 (with-current-buffer staging-buffer
                   (org-mode)
-                  (pearl-gtd-table-stage-map-entries
+                  (pearl-gtd-inbox--map-entries
                    staging-buffer
                    (lambda (headline entry-ref)
-                     (pearl-gtd-table-stage-highlight-entry entry-ref)
+                     (pearl-gtd-inbox--highlight-entry entry-ref)
                      (pearl-gtd-inbox-process-entry headline staging-buffer entry-ref)))
                   ;; Clear highlight after processing all entries
-                  (when pearl-gtd-table-stage-current-highlight
-                    (delete-overlay pearl-gtd-table-stage-current-highlight)
-                    (setq pearl-gtd-table-stage-current-highlight nil))
-                  (pearl-gtd-table-stage-clear-changes staging-buffer)
+                  (when pearl-gtd-inbox--current-highlight
+                    (delete-overlay pearl-gtd-inbox--current-highlight)
+                    (setq pearl-gtd-inbox--current-highlight nil))
+                  (pearl-gtd-inbox--clear-changes staging-buffer)
                   (setq pearl-gtd-inbox--pending-moves (nreverse pearl-gtd-inbox--pending-moves))
                   (dolist (move pearl-gtd-inbox--pending-moves)
                     (pearl-gtd-inbox-do-move (nth 0 move) (nth 1 move) (nth 2 move) (nth 3 move) (nth 4 move)))
