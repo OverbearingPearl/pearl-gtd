@@ -34,11 +34,8 @@
 
 (test-pearl-gtd-define-story test-pearl-gtd-setup-user-reinitializes-without-losing-data
   "User reinitializes system, existing files are preserved."
-  :setup (progn
-           (pearl-gtd-init-initialize)
-           (with-temp-file (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
-             (insert "* Existing task\n")))
-  :files nil
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Existing task\n"))
   :mock nil
   :body (pearl-gtd-init-initialize)
   :asserts (progn
