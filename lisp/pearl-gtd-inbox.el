@@ -32,13 +32,25 @@
   "Face for executed (2-minute rule) entries."
   :group 'pearl-gtd)
 
-(defvar pearl-gtd-inbox--staging-original-file nil)
-(defvar pearl-gtd-inbox--staging-changes nil)
-(defvar-local pearl-gtd-inbox--current-highlight nil)
-(defvar-local pearl-gtd-inbox--marked-deleted-rows '())
-(defvar-local pearl-gtd-inbox--marked-executed-rows '())
+(defvar pearl-gtd-inbox--staging-original-file nil
+  "The original Org file path for the staging buffer.")
+
+(defvar pearl-gtd-inbox--staging-changes nil
+  "A list to store staged changes, e.g., ((row col new-value) ...).")
+
+(defvar-local pearl-gtd-inbox--current-highlight nil
+  "Current highlight overlay in the staging buffer.")
+
+(defvar-local pearl-gtd-inbox--marked-deleted-rows '()
+  "Buffer-local list of row numbers marked as deleted.")
+
+(defvar-local pearl-gtd-inbox--marked-executed-rows '()
+  "Buffer-local list of row numbers marked as executed.")
 
 (defun pearl-gtd-inbox--create-staging-buffer (file-path &optional buffer-name)
+  "Create a staging buffer from FILE-PATH.
+Optional BUFFER-NAME specifies the buffer name.
+Return the created buffer."
   (setq pearl-gtd-inbox--staging-original-file file-path
         pearl-gtd-inbox--staging-changes nil
         pearl-gtd-inbox--marked-deleted-rows '()
@@ -79,6 +91,7 @@
       (current-buffer))))
 
 (defun pearl-gtd-inbox--map-entries (buffer func)
+  "Map over all entries in BUFFER, calling FUNC with headline and entry-ref."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-min))
@@ -95,6 +108,7 @@
           (funcall func (car entry) (cdr entry)))))))
 
 (defun pearl-gtd-inbox--highlight-entry (entry-ref)
+  "Highlight ENTRY-REF in staging buffer."
   (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
     (with-current-buffer buffer
       (save-excursion
@@ -108,6 +122,7 @@
           (setq pearl-gtd-inbox--current-highlight ov))))))
 
 (defun pearl-gtd-inbox--mark-deleted (entry-ref)
+  "Mark ENTRY-REF as deleted."
   (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
@@ -123,6 +138,7 @@
         (cl-pushnew row pearl-gtd-inbox--marked-deleted-rows)))))
 
 (defun pearl-gtd-inbox--mark-executed (entry-ref)
+  "Mark ENTRY-REF as executed."
   (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
@@ -138,6 +154,7 @@
         (cl-pushnew row pearl-gtd-inbox--marked-executed-rows)))))
 
 (defun pearl-gtd-inbox--stage-change (entry-ref col new-value)
+  "Stage change for ENTRY-REF at COL with NEW-VALUE."
   (let ((buffer (car entry-ref)) (row (cdr entry-ref)))
     (with-current-buffer buffer
       (push (list row col new-value) pearl-gtd-inbox--staging-changes)
@@ -152,10 +169,12 @@
           (pearl-gtd-inbox--reapply-marks buffer))))))
 
 (defun pearl-gtd-inbox--clear-changes (buffer)
+  "Clear changes in BUFFER."
   (with-current-buffer buffer
     (setq pearl-gtd-inbox--staging-changes nil)))
 
 (defun pearl-gtd-inbox--reapply-marks (buffer)
+  "Reapply marks to BUFFER after table alignment."
   (with-current-buffer buffer
     (dolist (row pearl-gtd-inbox--marked-deleted-rows)
       (condition-case nil
