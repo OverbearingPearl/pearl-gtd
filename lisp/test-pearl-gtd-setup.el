@@ -57,6 +57,25 @@
                       "* Existing task")))
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-setup-user-initializes-with-two-existing-files
+  "User initializes system with two existing files preserved."
+  :setup nil
+  :files (("inbox.org" "* Task one\n* Task two\n")
+          ("reference.org" "* Existing reference\n"))
+  :mock nil
+  :body (pearl-gtd-init-initialize)
+  :asserts (progn
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                      "* Task one"))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                      "* Task two"))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "reference.org" pearl-gtd-init-base-directory)
+                      "* Existing reference")))
+  :teardown nil)
+
 (provide 'test-pearl-gtd-setup)
 
 ;;; test-pearl-gtd-setup.el ends here

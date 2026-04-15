@@ -88,6 +88,49 @@
                     "* Task to cancel"))
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-processes-empty-inbox
+  "User attempts to clarify empty inbox."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" ""))
+  :mock nil
+  :body (pearl-gtd-process-inbox)
+  :asserts (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
+  :teardown nil)
+
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-processes-two-entries-sequentially
+  "User clarifies two entries with different decisions."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* First task\n* Second task\n"))
+  :mock (((symbol-function 'y-or-n-p)
+          (lambda (prompt &rest _)
+            (cond
+             ((string-match "2 minutes" prompt) nil)
+             ((string-match "actionable" prompt) t)
+             (t nil))))
+         ((symbol-function 'read-string)
+          (let ((count 0))
+            (lambda (prompt &rest _)
+              (setq count (1+ count))
+              (cond
+               ((and (= count 1) (string-match "Rename" prompt)) "Renamed first")
+               ((and (= count 2) (string-match "Rename" prompt)) "")
+               ((string-match "Add remarks" prompt) "")
+               ((string-match "Context" prompt) "@office")
+               ((string-match "Schedule" prompt) "")
+               ((string-match "Delegate" prompt) "")
+               ((string-match "Project" prompt) "")
+               (t ""))))))
+  :body (pearl-gtd-process-inbox)
+  :asserts (progn
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "actions.org" pearl-gtd-init-base-directory)
+                      "* Renamed first"))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "actions.org" pearl-gtd-init-base-directory)
+                      "* Second task"))
+             (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory)))
+  :teardown nil)
+
 (provide 'test-pearl-gtd-clarify)
 
 ;;; test-pearl-gtd-clarify.el ends here

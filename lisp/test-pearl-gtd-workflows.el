@@ -92,6 +92,45 @@
                       "* Reference task")))
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-workflows-user-processes-empty-inbox
+  "User processes empty inbox workflow."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" ""))
+  :mock nil
+  :body (pearl-gtd-process-inbox)
+  :asserts (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
+  :teardown nil)
+
+(test-pearl-gtd-define-story test-pearl-gtd-workflows-user-captures-and-processes-two-items
+  "User captures two items then processes both."
+  :setup (pearl-gtd-init-initialize)
+  :files nil
+  :mock (((symbol-function 'read-string)
+          (let ((count 0))
+            (lambda (prompt &rest _)
+              (setq count (1+ count))
+              (cond
+               ((and (= count 1) (string-match "Enter item" prompt)) "First capture")
+               ((and (= count 2) (string-match "Enter item" prompt)) "Second capture")
+               ((string-match "Rename" prompt) "")
+               ((string-match "Add remarks" prompt) "")
+               ((string-match "Assign" prompt) "reference")
+               (t "")))))
+         ((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
+  :body (progn
+          (pearl-gtd-capture)
+          (pearl-gtd-capture)
+          (pearl-gtd-process-inbox))
+  :asserts (progn
+             (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "reference.org" pearl-gtd-init-base-directory)
+                      "* First capture"))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "reference.org" pearl-gtd-init-base-directory)
+                      "* Second capture")))
+  :teardown nil)
+
 (provide 'test-pearl-gtd-workflows)
 
 ;;; test-pearl-gtd-workflows.el ends here

@@ -28,8 +28,7 @@
     (dolist (file '("inbox.org" "reference.org" "someday.org" "actions.org"))
       (let ((file-path (expand-file-name file dir)))
         (unless (file-exists-p file-path)
-          (with-temp-file file-path
-            (insert ";; " file "\n")))))
+          (write-region "" nil file-path))))
     (message "Pearl-GTD initialized in %s" dir)))
 
 (provide 'pearl-gtd-init)

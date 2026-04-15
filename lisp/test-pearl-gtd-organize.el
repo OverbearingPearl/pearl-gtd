@@ -142,6 +142,51 @@
                     "* Renamed task"))
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-processes-two-items-differently
+  "User processes two items: one to trash, one to reference."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Junk item\n* Keep item\n"))
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
+         ((symbol-function 'read-string)
+          (let ((count 0))
+            (lambda (prompt &rest _)
+              (setq count (1+ count))
+              (cond
+               ((and (= count 1) (string-match "Rename" prompt)) "")
+               ((and (= count 2) (string-match "Rename" prompt)) "Important article")
+               ((string-match "Add remarks" prompt) "")
+               ((and (= count 1) (string-match "Assign" prompt)) "trash")
+               ((and (= count 2) (string-match "Assign" prompt)) "reference")
+               (t ""))))))
+  :body (pearl-gtd-process-inbox)
+  :asserts (progn
+             (should-not (test-pearl-gtd-file-contains-p
+                          (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                          "* Junk item"))
+             (should (test-pearl-gtd-file-contains-p
+                      (expand-file-name "reference.org" pearl-gtd-init-base-directory)
+                      "* Important article"))
+             (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory)))
+  :teardown nil)
+
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-executes-two-tasks-immediately
+  "User executes two 2-minute tasks immediately."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Quick call\n* Quick email\n"))
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+         ((symbol-function 'read-string)
+          (lambda (prompt &rest _)
+            (cond
+             ((string-match "Rename" prompt) "")
+             ((string-match "Add remarks" prompt) "")
+             (t "")))))
+  :body (pearl-gtd-process-inbox)
+  :asserts (progn
+             (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
+             ;; Both should be marked as executed (moved with nil target)
+             )
+  :teardown nil)
+
 (provide 'test-pearl-gtd-organize)
 
 ;;; test-pearl-gtd-organize.el ends here
