@@ -187,6 +187,26 @@
              )
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-organize-user-quits-during-assign
+  "User quits when prompted for assignment target."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Task to assign\n"))
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
+         ((symbol-function 'read-string) (lambda (prompt &rest _)
+                                           (if (string-match "Assign" prompt)
+                                               (signal 'quit nil)
+                                             ""))))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-process-inbox)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-file-contains-p
+                    (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                    "* Task to assign"))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
+  :teardown nil)
+
 (provide 'test-pearl-gtd-organize)
 
 ;;; test-pearl-gtd-organize.el ends here

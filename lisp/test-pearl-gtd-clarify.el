@@ -80,12 +80,57 @@
   "User cancels midway during clarification."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task to cancel\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))  ; Simulate yes to abort
-         ((symbol-function 'read-string) (lambda (&rest _) "")))  ; Mock to skip renaming
-  :body (pearl-gtd-process-inbox)  ; Call the function with mock
-  :asserts (should (test-pearl-gtd-file-contains-p
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) (signal 'quit nil)))
+         ((symbol-function 'read-string) (lambda (&rest _) "")))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-process-inbox)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-file-contains-p
                     (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
                     "* Task to cancel"))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
+  :teardown nil)
+
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-quits-during-rename
+  "User quits during rename step."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Task to rename\n"))
+  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
+         ((symbol-function 'read-string) (lambda (prompt &rest _)
+                                           (if (string-match "Rename" prompt)
+                                               (signal 'quit nil)
+                                             ""))))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-process-inbox)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-file-contains-p
+                    (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                    "* Task to rename"))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
+  :teardown nil)
+
+(test-pearl-gtd-define-story test-pearl-gtd-clarify-user-quits-during-actionable-check
+  "User quits during actionable check."
+  :setup (pearl-gtd-init-initialize)
+  :files (("inbox.org" "* Task to check\n"))
+  :mock (((symbol-function 'y-or-n-p) (lambda (prompt &rest _)
+                                         (if (string-match "actionable" prompt)
+                                             (signal 'quit nil)
+                                           nil)))
+         ((symbol-function 'read-string) (lambda (&rest _) "")))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-process-inbox)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-file-contains-p
+                    (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
+                    "* Task to check"))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
   :teardown nil)
 
 (test-pearl-gtd-define-story test-pearl-gtd-clarify-user-processes-empty-inbox

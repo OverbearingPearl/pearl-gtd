@@ -166,6 +166,20 @@
                       "* Task * with asterisk")))
   :teardown nil)
 
+(test-pearl-gtd-define-story test-pearl-gtd-capture-user-quits-during-input
+  "User presses C-g during capture input, nothing is saved."
+  :setup (pearl-gtd-init-initialize)
+  :files nil
+  :mock (((symbol-function 'read-string) (lambda (&rest _) (signal 'quit nil))))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-capture)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-inbox-empty-p pearl-gtd-init-base-directory))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
+  :teardown nil)
+
 (provide 'test-pearl-gtd-capture)
 
 ;;; test-pearl-gtd-capture.el ends here

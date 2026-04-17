@@ -18,6 +18,9 @@
 (require 'ert)
 (require 'cl-lib)
 
+(defvar test-pearl-gtd-caught-error nil
+  "Variable to store caught errors during tests.")
+
 (defun test-pearl-gtd-file-contains-p (file pattern)
   "Assert that FILE contains PATTERN.
 FILE is the file path to check.
@@ -68,7 +71,8 @@ ARGS is a plist with keys:
     `(ert-deftest ,name ()
        ,docstring
        (let* ((temp-dir (make-temp-file "test-pearl-gtd-" t))
-              (pearl-gtd-init-base-directory temp-dir))
+              (pearl-gtd-init-base-directory temp-dir)
+              (test-pearl-gtd-caught-error nil))
          (unwind-protect
              (progn
                ,setup

@@ -59,14 +59,17 @@
   "User interrupts processing midway."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Task to interrupt\n"))
-  :mock (((symbol-function 'read-string) (lambda (&rest _) ""))  ; Mock to skip renaming
-         ((symbol-function 'y-or-n-p) (lambda (&rest _) t)))  ; Simulate yes to potential prompts
-  :body (condition-case err
-            (pearl-gtd-process-inbox)
-          (quit nil))
-  :asserts (should (test-pearl-gtd-file-contains-p
+  :mock (((symbol-function 'read-string) (lambda (&rest _) (signal 'quit nil)))
+         ((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+  :body (progn
+         (condition-case err
+             (pearl-gtd-process-inbox)
+           (quit (setq test-pearl-gtd-caught-error err))))
+:asserts (progn
+           (should (test-pearl-gtd-file-contains-p
                     (expand-file-name "inbox.org" pearl-gtd-init-base-directory)
                     "* Task to interrupt"))
+           (should (eq (car test-pearl-gtd-caught-error) 'quit)))
   :teardown nil)
 
 (test-pearl-gtd-define-story test-pearl-gtd-workflows-user-processes-mixed-destinations
