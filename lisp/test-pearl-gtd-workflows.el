@@ -76,15 +76,21 @@
   "User processes entries with mixed destinations."
   :setup (pearl-gtd-init-initialize)
   :files (("inbox.org" "* Action task\n* Reference task\n"))
-  :mock (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
-         ((symbol-function 'read-string)
-          (lambda (prompt &rest _)
-            (cond
-             ((string-match "Rename" prompt) "")
-             ((string-match "Add remarks" prompt) "")
-             ((string-match "Context" prompt) "@office")
-             ((string-match "Assign.*Reference" prompt) "reference")
-             (t "")))))
+  :mock (((symbol-function 'y-or-n-p)
+        (lambda (prompt &rest _)
+          (cond
+           ((string-match "Action task.*actionable" prompt) t)
+           ((string-match "Action task.*2 minutes" prompt) nil)
+           ((string-match "Reference task.*actionable" prompt) nil)
+           (t t))))
+       ((symbol-function 'read-string)
+        (lambda (prompt &rest _)
+          (cond
+           ((string-match "Rename" prompt) "")
+           ((string-match "Add remarks" prompt) "")
+           ((string-match "Context.*Action task" prompt) "@office")
+           ((string-match "Assign.*Reference" prompt) "reference")
+           (t "")))))
   :body (pearl-gtd-process-inbox)
   :asserts (progn
              (should (test-pearl-gtd-file-contains-p
